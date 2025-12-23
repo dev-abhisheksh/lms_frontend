@@ -12,7 +12,7 @@ const Bottombar = () => {
         }`;
 
     return (
-        <div className="block lg:hidden w-full h-[7vh] bg-[#7034FF] rounded-lg">
+        <div className="block md:hidden lg:hidden w-full h-[7vh] bg-[#7034FF] rounded-lg">
             <div className="h-full w-full flex justify-around items-center">
 
                 <button
