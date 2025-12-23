@@ -2,7 +2,7 @@ import React from 'react'
 
 const Sidebar = () => {
   return (
-    <div className='w-60 bg-[#FFFFFF] rounded-xl'>
+    <div className='hidden w-60 bg-[#FFFFFF] rounded-xl sm:block'>
         <div>
             <h1>Nigga</h1>
         </div>
