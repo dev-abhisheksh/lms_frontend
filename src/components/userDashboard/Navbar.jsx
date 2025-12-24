@@ -3,6 +3,7 @@ import { IoIosArrowDown, IoMdNotificationsOutline, IoIosSearch } from "react-ico
 
 const Navbar = () => {
   const [toggleProfileMenu, setToggleProfileMenu] = useState(false);
+  const [showSearch, setShowSearch] = useState(false)
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -35,7 +36,29 @@ const Navbar = () => {
         {/* Right */}
         <div className="flex items-center gap-4 sm:gap-6">
 
-          <IoIosSearch size={22} className="sm:w-[26px] sm:h-[26px]" />
+          <div className={`hidden md:flex md:w-60 lg:w-80 h-8 bg-[#D5C7FF] rounded-xl border border-transparent px-3 items-center transition-all duration-200 ease-out overflow-hidden hover:border-black
+                            ${showSearch
+              ? "opacity-100 scale-100 translate-x-0 pointer-events-auto"
+              : "opacity-0 scale-95 translate-x-20 pointer-events-none"
+            }
+                `}>
+            <input
+              type="text"
+              placeholder="Search"
+              className="w-full bg-transparent outline-none text-black placeholder:text-gray-600"
+            />
+          </div>
+
+          <div onClick={() => setShowSearch(prev => !prev)}
+            className={`
+                 p-2 rounded-md cursor-pointer transition-all duration-200
+                ${showSearch
+                ? "text-[#7034FF] drop-shadow-[0_0_8px_rgba(112,52,255,1)]"
+                : ""}
+           `}
+          >
+            <IoIosSearch size={22} className="sm:w-[26px] sm:h-[26px] cursor-pointer" />
+          </div>
           <IoMdNotificationsOutline size={22} className="sm:w-[26px] sm:h-[26px]" />
 
           {/* Avatar + Menu */}
@@ -49,9 +72,8 @@ const Navbar = () => {
 
               <IoIosArrowDown
                 size={12}
-                className={`transition-transform duration-200 ease-out ${
-                  toggleProfileMenu ? "rotate-180" : "rotate-0"
-                }`}
+                className={`transition-transform duration-200 ease-out ${toggleProfileMenu ? "rotate-180" : "rotate-0"
+                  }`}
               />
             </div>
 
