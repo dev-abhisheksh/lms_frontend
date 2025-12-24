@@ -1,6 +1,17 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 
 const CourseDetails = () => {
+    const { courseId } = useParams()
+    const [courseData, setCourseData] = useState(null)
+
+    useEffect(() => {
+        const course = coursesData.find(c => c.id === courseId); // ✅ Find from local array
+        setCourseData(course);
+    }, [courseId])
+
+    if (!courseId) return <div>Loading...</div>
+
     return (
         <div className="w-full h-full p-3 sm:p-6 bg-white rounded-lg">
 
@@ -12,7 +23,7 @@ const CourseDetails = () => {
 
             </div>
 
-            {/* course content goes here */}
+            <div>{courseData.title}</div>
 
         </div>
     );

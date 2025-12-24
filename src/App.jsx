@@ -1,7 +1,9 @@
 import React from 'react'
 import UserDashboard from './pages/UserDashboard'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import CourseDetailspage from './pages/CourseDetailspage'
+// import CourseDetailspage from './pages/CourseDetailspage'
+import CourseDetails from './components/courseDetailsPage/CourseDetails'
+import Login from './pages/Login'
 
 const App = () => {
   return (
@@ -12,7 +14,9 @@ const App = () => {
         <Routes>
           <Route path='/' element={<UserDashboard />} />
 
-          <Route path='/courses' element={<CourseDetailspage />} />
+          <Route path='/courses/:courseId' element={<CourseDetails />} />
+
+          <Route path='/login' element={<Login />} />
         </Routes>
 
       </div>
