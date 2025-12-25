@@ -1,6 +1,6 @@
 import React, { useDeferredValue, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { allCourses } from "../../API/course.api";
+import { allCourses } from "../API/course.api";
 
 const Grids = () => {
 
@@ -8,9 +8,6 @@ const Grids = () => {
     const [coursesData, setCoursesData] = useState([])
     const [loading, setLoading] = useState(true)
 
-    const handleCourseClick = (courseId) => {
-        navigate(`/course/${courseId}`)
-    }
 
     useEffect(() => {
         const loadCourses = async () => {

@@ -1,15 +1,17 @@
 import React, { useContext, useState } from "react";
 import { MdAssignment, MdHome, MdMenuBook, MdOutlineSmartToy } from "react-icons/md";
 import { FaRegUser } from "react-icons/fa";
-import { SidebarTabsContext } from "../../contexts/Sidebar";
+// import { SidebarTabsContext } from "../contexts/Sidebar";
 
 const Bottombar = () => {
     // const [active, setActive] = useState("home");
-    const { activeTab, setActiveTab } = useContext(SidebarTabsContext)
+    // const { activeTab, setActiveTab } = useContext(SidebarTabsContext)
+
+    const [activeTab, setActiveTab] = useState()
 
     const itemClass = (name) =>
         `flex items-center justify-center transition-all duration-200 ${activeTab === name
-            ? "bg-[#D5C7FF] text-[#7034FF] rounded-full px-5 py-2"
+            ? "bg-[#D5C7FF] text-[#7034FF] rounded-full px-4 py-1"
             : "text-white"
         }`;
 
@@ -33,17 +35,17 @@ const Bottombar = () => {
                 </button>
 
                 <button
-                    className={itemClass("submissions")}
-                    onClick={() => setActiveTab("submissions")}
-                >
-                    <MdMenuBook size={24} />
-                </button>
-
-                <button
                     className={itemClass("ai")}
                     onClick={() => setActiveTab("ai")}
                 >
                     <MdOutlineSmartToy size={22} />
+                </button>
+
+                <button
+                    className={itemClass("profile")}
+                    onClick={() => setActiveTab("profile")}
+                >
+                    <FaRegUser size={20} />
                 </button>
 
             </div>
