@@ -28,8 +28,8 @@ const Sidebar = () => {
               flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer
               transition-all duration-150
               ${activeTab === id
-                ? "bg-[#D5C7FF] text-purple-700 font-medium"
-                : "text-gray-700 hover:bg-gray-100"
+                ? "bg-[#D5C7FF] text-purple-700 font-medium w-full"
+                : "text-gray-700 w-full  hover:bg-gray-100"
               }
             `}
           >
