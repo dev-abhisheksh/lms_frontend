@@ -1,52 +1,34 @@
-import React, { useContext, useState } from "react";
-import { MdAssignment, MdHome, MdMenuBook, MdOutlineSmartToy } from "react-icons/md";
+import { NavLink } from "react-router-dom";
+import { MdAssignment, MdHome, MdOutlineSmartToy } from "react-icons/md";
 import { FaRegUser } from "react-icons/fa";
-// import { SidebarTabsContext } from "../contexts/Sidebar";
 
 const Bottombar = () => {
-    // const [active, setActive] = useState("home");
-    // const { activeTab, setActiveTab } = useContext(SidebarTabsContext)
-
-    const [activeTab, setActiveTab] = useState()
-
-    const itemClass = (name) =>
-        `flex items-center justify-center transition-all duration-200 ${activeTab === name
+    const itemClass = (isActive) =>
+        `flex items-center justify-center transition-all duration-200
+     ${isActive
             ? "bg-[#D5C7FF] text-[#7034FF] rounded-full px-4 py-1"
             : "text-white"
         }`;
 
-
     return (
-        <div className="block md:hidden lg:hidden w-full h-[7vh] bg-[#7034FF] rounded-lg">
+        <div className="block md:hidden w-full h-[7vh] bg-[#7034FF] rounded-lg">
             <div className="h-full w-full flex justify-around items-center">
 
-                <button
-                    className={itemClass("courses")}
-                    onClick={() => setActiveTab("courses")}
-                >
+                <NavLink to="/" end className={({ isActive }) => itemClass(isActive)}>
                     <MdHome size={26} />
-                </button>
+                </NavLink>
 
-                <button
-                    className={itemClass("assignments")}
-                    onClick={() => setActiveTab("assignments")}
-                >
+                <NavLink to="/assignments" className={({ isActive }) => itemClass(isActive)}>
                     <MdAssignment size={24} />
-                </button>
+                </NavLink>
 
-                <button
-                    className={itemClass("ai")}
-                    onClick={() => setActiveTab("ai")}
-                >
+                <NavLink to="/ai" className={({ isActive }) => itemClass(isActive)}>
                     <MdOutlineSmartToy size={22} />
-                </button>
+                </NavLink>
 
-                <button
-                    className={itemClass("profile")}
-                    onClick={() => setActiveTab("profile")}
-                >
+                <NavLink to="/profile" className={({ isActive }) => itemClass(isActive)}>
                     <FaRegUser size={20} />
-                </button>
+                </NavLink>
 
             </div>
         </div>

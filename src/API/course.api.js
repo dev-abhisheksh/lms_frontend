@@ -8,12 +8,12 @@ const API = axios.create({
 
 API.interceptors.request.use((config) => {
     const token = getToken()
-    console.log("Token check:", token)
+    // console.log("Token check:", token)
     if (token) {
         config.headers.Authorization = `Bearer ${token}`
     }
     return config
 })
 
-export const allCourses = () => API.get("/my-courses")
+export const myCourses = () => API.get("/my-courses")
 export const getCourseById = (courseID) => API.get(`/course/${courseID}`)

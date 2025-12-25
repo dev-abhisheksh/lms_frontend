@@ -36,7 +36,7 @@ const Navbar = () => {
         {/* Right */}
         <div className="flex items-center gap-4 sm:gap-6">
 
-          <div className={`hidden md:flex md:w-60 lg:w-80 h-8 bg-[#D5C7FF] rounded-xl border border-transparent px-3 items-center transition-all duration-200 ease-out overflow-hidden hover:border-black
+          <div className={`hidden md:flex md:w-60 lg:w-80 h-8 bg-[#D5C7FF] rounded-xl border border-transparent px-3 items-center transition-all duration-200 ease-out overflow-hidden 
                             ${showSearch
               ? "opacity-100 scale-100 translate-x-0 pointer-events-auto"
               : "opacity-0 scale-95 translate-x-20 pointer-events-none"

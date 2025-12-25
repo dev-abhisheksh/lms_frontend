@@ -1,20 +1,21 @@
 import React, { useDeferredValue, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { allCourses } from "../API/course.api";
+import { myCourses } from "../API/course.api";
 
 const Grids = () => {
 
     const navigate = useNavigate()
-    const [coursesData, setCoursesData] = useState([])
+    const [myCoursez, setMyCoursez] = useState([])
     const [loading, setLoading] = useState(true)
 
 
     useEffect(() => {
         const loadCourses = async () => {
             try {
-                const res = await allCourses();
-                // console.log("API RESPONSE:", res);   
-                setCoursesData(res.data.courses);
+                const res = await myCourses();
+                // console.log("API RESPONSE:", res.data.courses);   
+                setMyCoursez(res.data.courses);
+                // console.log(res.data)
             } catch (error) {
                 console.error(
                     "FETCH COURSES ERROR:",
@@ -27,8 +28,9 @@ const Grids = () => {
     }, []);
 
 
+
     return (
-        <div className="w-full p-3 sm:p-6 bg-white rounded-lg overflow-y-scroll">
+        <div className="w-full h-full p-3 sm:p-6 bg-white rounded-lg overflow-y-scroll">
 
             {/* Section header */}
             <div className="mb-6">
@@ -40,9 +42,13 @@ const Grids = () => {
                 </p>
             </div>
 
+            {myCoursez.length === 0 && (
+                <h1>No Enrollments Found. Contact Admin</h1>
+            )}
+
             {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {coursesData.map((item) => (
+                {myCoursez.map((item) => (
                     <Link
                         key={item._id}
                         to={`/course/${item.course._id}`}

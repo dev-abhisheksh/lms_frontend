@@ -1,11 +1,10 @@
 import React from 'react'
-import CoursePage from '../components/Courses/CoursePage'
-import Universal from '../components/Universal'
+import Grids from '../components/Grids'
 
 const Courses = () => {
     return (
-        <div>
-            <Universal />
+        <div className='h-full flex flex-1'>
+            <Grids />
         </div>
     )
 }
