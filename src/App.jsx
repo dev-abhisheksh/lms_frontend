@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 // import CourseDetailspage from './pages/CourseDetailspage'
 import CourseDetails from './components/courseDetailsPage/CourseDetails'
 import Login from './pages/Login'
+import CourseDetailsPage from './pages/CourseDetailspage'
 
 const App = () => {
   return (
@@ -14,7 +15,7 @@ const App = () => {
         <Routes>
           <Route path='/' element={<UserDashboard />} />
 
-          <Route path='/courses/:courseId' element={<CourseDetails />} />
+          <Route path='/course/:courseId' element={<CourseDetailsPage />} />
 
           <Route path='/login' element={<Login />} />
         </Routes>

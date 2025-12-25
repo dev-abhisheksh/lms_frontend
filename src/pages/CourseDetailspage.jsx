@@ -1,9 +1,8 @@
 import React from "react";
 import Navbar from "../components/userDashboard/Navbar";
 import Sidebar from "../components/userDashboard/Sidebar";
-import MainContent from "../components/userDashboard/MainContent";
 import Bottombar from "../components/userDashboard/Bottombar";
-import CourseDetails from "../components/courseDetailsPage/CourseDetails";
+import MainCourseContent from "../components/courseDetailsPage/MainCourseContent";
 
 
 const CourseDetailsPage = () => {
@@ -15,7 +14,7 @@ const CourseDetailsPage = () => {
                 <Sidebar />
 
                 <main className="flex-1 overflow-y-auto">
-                    <CourseDetails />
+                   <MainCourseContent/>
                 </main>
             </div>
 

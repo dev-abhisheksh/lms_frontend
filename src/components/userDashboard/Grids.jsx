@@ -1,5 +1,5 @@
 import React, { useDeferredValue, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { allCourses } from "../../API/course.api";
 
 const Grids = () => {
@@ -9,7 +9,7 @@ const Grids = () => {
     const [loading, setLoading] = useState(true)
 
     const handleCourseClick = (courseId) => {
-        navigate(`/courses/${courseId}`)
+        navigate(`/course/${courseId}`)
     }
 
     useEffect(() => {
@@ -18,10 +18,6 @@ const Grids = () => {
                 const res = await allCourses();
                 // console.log("API RESPONSE:", res);   
                 setCoursesData(res.data.courses);
-                console.log("FULL RESPONSE:", res);
-                console.log("BACKEND DATA:", res.data);
-                console.log("COURSES ARRAY:", res.data.courses);
-
             } catch (error) {
                 console.error(
                     "FETCH COURSES ERROR:",
@@ -50,9 +46,9 @@ const Grids = () => {
             {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {coursesData.map((item) => (
-                    <div
+                    <Link
                         key={item._id}
-                        onClick={() => handleCourseClick(item.course._id)}
+                        to={`/course/${item.course._id}`}
                         className="
         flex gap-4 p-4
         border rounded-lg
@@ -60,6 +56,7 @@ const Grids = () => {
         hover:bg-gray-50
         transition-colors
         cursor-pointer
+        no-underline
       "
                     >
                         <div className="flex flex-col justify-between flex-1">
@@ -74,18 +71,16 @@ const Grids = () => {
                             </div>
 
                             <div className="mt-3 flex items-center justify-between">
-                                <span className="text-xs text-gray-500">
-                                    Enrolled
-                                </span>
-
+                                <span className="text-xs text-gray-500">Enrolled</span>
                                 <span className="text-sm text-indigo-600 hover:underline">
-                                    Open course
+                                    Open course →
                                 </span>
                             </div>
                         </div>
-                    </div>
+                    </Link>
                 ))}
             </div>
+
 
         </div>
     );
