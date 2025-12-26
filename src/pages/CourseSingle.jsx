@@ -94,7 +94,7 @@ const CourseSingle = () => {
                     <div className='flex flex-col gap-4 p-4'>
                         {modules.map((module, index) => (
                             <Link
-                                to={`/modules/${module._id}`}
+                                to={`/module/${module._id}`}
                                 key={module._id}
                                 className='bg-white border border-gray-200 rounded-lg p-5 hover:shadow-lg transition-shadow cursor-pointer'
                             >

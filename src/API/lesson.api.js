@@ -1,10 +1,12 @@
+
 import axios from "axios";
 
 const getToken = () => localStorage.getItem("accessToken")
 
 const API = axios.create({
-    baseURL: "http://localhost:4000/api/v1/modules"
+    baseURL: "http://localhost:4000/api/v1/lessons"
 })
+
 API.interceptors.request.use((config) => {
     const token = getToken()
     if (token) {
@@ -13,5 +15,4 @@ API.interceptors.request.use((config) => {
     return config
 })
 
-export const allModules = (courseID) => API.get(`/${courseID}`)
-export const getModuleById = (moduleID) => API.get(`/module/${moduleID}`)
+export const allLessons = (moduleID) => API.get(`/${moduleID}`)
