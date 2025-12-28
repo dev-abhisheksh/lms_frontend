@@ -27,9 +27,15 @@ const CourseSingle = () => {
             try {
                 const res = await allModules(courseID)
                 console.log(res.data.modules)
-                setModules(res.data.modules)
+                // Handle case where API returns {message: 'No modules'} instead of array
+                if (Array.isArray(res.data.modules)) {
+                    setModules(res.data.modules)
+                } else {
+                    setModules([])
+                }
             } catch (error) {
-
+                console.error("Failed to fetch modules", error)
+                setModules([])
             }
         }
 
@@ -49,99 +55,108 @@ const CourseSingle = () => {
     const tabs = ["description", "modules"]
 
     return (
-        <div className='h-full w-full bg-white rounded-lg p-4 overflow-y-scroll scrollbar-hide flex flex-col gap-7'>
-            <div className='min-h-[45%] w-full bg-white rounded-lg flex flex-col gap-3'>
-                <div className='h-[80%] bg-violet-100 rounded-lg'>
-
-                </div>
-                <div className='flex flex-col pl-2'>
-                    <h1 className='font-bold text-2xl'>{course.title}</h1>
-                    <p className='text-gray-600'>{formattedDate}</p>
+        <div className='h-full w-full bg-gray-50 rounded-xl p-3 sm:p-4 md:p-6 overflow-y-scroll scrollbar-hide flex flex-col gap-4 sm:gap-6 md:gap-8'>
+            {/* Course Header */}
+            <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5 md:p-6'>
+                <div className='flex flex-col gap-2'>
+                    <h1 className='font-bold text-xl sm:text-2xl md:text-3xl text-gray-900'>{course.title}</h1>
+                    <p className='text-xs sm:text-sm text-gray-500'>{formattedDate}</p>
                 </div>
             </div>
 
-
-            <div className='w-full bg-white h-fit rounded-lg px-3 flex flex-col'>
-
-                <div className='flex gap-7'>
+            {/* Tabs and Content Section */}
+            <div className='bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden'>
+                {/* Tab Navigation */}
+                <div className='flex gap-4 sm:gap-6 md:gap-8 px-4 sm:px-5 md:px-6 pt-3 sm:pt-4 border-b border-gray-200'>
                     {tabs.map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`cursor-pointer
+                            className={`pb-2 sm:pb-3 px-2 font-medium text-xs sm:text-sm capitalize transition-all
                                 ${activeTab === tab
-                                    ? "border-b-4 border-[#7034FF]"
-                                    : ""
+                                    ? "text-[#7034FF] border-b-2 border-[#7034FF]"
+                                    : "text-gray-600 hover:text-gray-900"
                                 }
-                                `}
+                            `}
                         >
                             {tab}
                         </button>
                     ))}
                 </div>
 
-                <div className='border-b-1'>
+                {/* Tab Content */}
+                <div className='p-4 sm:p-5 md:p-6 max-h-[60vh] overflow-y-auto'>
+                    {activeTab === "description" && (
+                        <div>
+                            <p className='text-sm sm:text-base text-gray-700 leading-relaxed'>
+                                {course.description || "No description available"}
+                            </p>
+                        </div>
+                    )}
 
-                </div>
+                    {activeTab === "modules" && (
+                        <div className='flex flex-col gap-3 sm:gap-4'>
+                            {modules.length === 0 ? (
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+                                    <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                                        <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Modules Available</h3>
+                                    <p className="text-sm text-gray-500">There are no modules in this course yet.</p>
+                                </div>
+                            ) : modules.map((module, index) => (
+                                <Link
+                                    to={`/module/${module._id}`}
+                                    key={module._id}
+                                    className='bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:shadow-md transition-all'
+                                >
+                                    <div className='flex items-center justify-between'>
+                                        <div className='flex items-center gap-3 flex-1 min-w-0'>
+                                            {/* Module Number Badge */}
+                                            <div className='bg-[#7034FF] text-white rounded-full w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center font-bold text-sm flex-shrink-0'>
+                                                {index + 1}
+                                            </div>
 
-                {activeTab === "description" && (
-                    <div className='py-5'>
-                        <p className='text-gray-700'>{course.description || "No description available"}</p>
-                    </div>
-                )}
-
-                {activeTab === "modules" && (
-                    <div className='flex flex-col gap-4 p-4'>
-                        {modules.map((module, index) => (
-                            <Link
-                                to={`/module/${module._id}`}
-                                key={module._id}
-                                className='bg-white border border-gray-200 rounded-lg p-5 hover:shadow-lg transition-shadow cursor-pointer'
-                            >
-                                <div className='flex items-center justify-between'>
-                                    <div className='flex items-center gap-4'>
-                                        {/* Module Number Badge */}
-                                        <div className='bg-violet-500 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold'>
-                                            {index + 1}
+                                            {/* Module Info */}
+                                            <div className='flex-1 min-w-0'>
+                                                <h3 className='font-semibold text-sm sm:text-base text-gray-900'>
+                                                    {module.title}
+                                                </h3>
+                                                <p className='text-xs text-gray-500 mt-1'>
+                                                    {module.lessons?.length || 0} {module.lessons?.length === 1 ? 'lesson' : 'lessons'}
+                                                </p>
+                                            </div>
                                         </div>
 
-                                        {/* Module Info */}
-                                        <div>
-                                            <h3 className='font-semibold text-lg text-gray-800'>
-                                                {module.title}
-                                            </h3>
-                                            <p className='text-sm text-gray-500'>
-                                                {module.lessons?.length || 0} lessons
-                                            </p>
-                                        </div>
+                                        {/* Arrow Icon */}
+                                        <svg
+                                            className='w-5 h-5 text-gray-400 flex-shrink-0 ml-2'
+                                            fill='none'
+                                            stroke='currentColor'
+                                            viewBox='0 0 24 24'
+                                        >
+                                            <path
+                                                strokeLinecap='round'
+                                                strokeLinejoin='round'
+                                                strokeWidth={2}
+                                                d='M9 5l7 7-7 7'
+                                            />
+                                        </svg>
                                     </div>
 
-                                    {/* Arrow Icon */}
-                                    <svg
-                                        className='w-6 h-6 text-gray-400'
-                                        fill='none'
-                                        stroke='currentColor'
-                                        viewBox='0 0 24 24'
-                                    >
-                                        <path
-                                            strokeLinecap='round'
-                                            strokeLinejoin='round'
-                                            strokeWidth={2}
-                                            d='M9 5l7 7-7 7'
-                                        />
-                                    </svg>
-                                </div>
-
-                                {/* Optional: Module Description */}
-                                {module.description && (
-                                    <p className='text-gray-600 text-sm mt-3 line-clamp-2'>
-                                        {module.description}
-                                    </p>
-                                )}
-                            </Link>
-                        ))}
-                    </div>
-                )}
+                                    {/* Module Description */}
+                                    {module.description && (
+                                        <p className='text-gray-600 text-xs mt-2 line-clamp-2 pl-0 sm:pl-12'>
+                                            {module.description}
+                                        </p>
+                                    )}
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     )
