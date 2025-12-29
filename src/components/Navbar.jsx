@@ -1,9 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { IoIosArrowDown, IoMdNotificationsOutline, IoIosSearch } from "react-icons/io";
+import { getCurrentUser, logoutUser } from '../API/auth.api';
+import { useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
   const [toggleProfileMenu, setToggleProfileMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false)
+  const [userData, setUserData] = useState(null);
+  const navigate = useNavigate()
+
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -16,6 +21,32 @@ const Navbar = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const res = await getCurrentUser();
+        setUserData(res.data.user)
+        console.log(res.data.user)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    fetchUserData()
+  }, [])
+
+  const logoutFeature = async () => {
+    try {
+      await logoutUser()
+    } catch (error) {
+      console.error("Failed to logout")
+    } finally {
+      localStorage.removeItem("accessToken")
+      localStorage.removeItem("user")
+      navigate("/login", { replace: true })
+    }
+  }
 
   return (
     <div className="flex justify-center bg-[#D7D7E3]">
@@ -87,16 +118,16 @@ const Navbar = () => {
             >
               <div className="mb-3">
                 <p className="text-sm font-semibold text-gray-800">
-                  Abhishek Sharma
+                  {userData?.fullName} - {userData?.username}
                 </p>
                 <p className="text-xs text-gray-500">
-                  abhishek@email.com
+                  {userData?.email}
                 </p>
               </div>
 
               <hr className="my-2" />
 
-              <button className="w-full text-left text-sm text-red-600 hover:bg-red-50 px-2 py-2 rounded-md">
+              <button onClick={logoutFeature} className="w-full text-left text-sm text-red-600 hover:bg-red-50 px-2 py-2 rounded-md">
                 Logout
               </button>
             </div>

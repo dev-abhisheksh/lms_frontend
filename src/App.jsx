@@ -9,6 +9,7 @@ import Assignments from "./pages/Assignments";
 import Ai from "./pages/Ai";
 import Profile from "./pages/Profile";
 import Modules from "./pages/Modules";
+import ProtectedRoutes from "./pages/ProtectedRoutes";
 
 
 const App = () => {
@@ -16,13 +17,15 @@ const App = () => {
     <BrowserRouter>
       <div className="h-screen w-full bg-[#D7D7E3]">
         <Routes>
-          <Route element={<Universal />}>
-            <Route path="/" element={<Courses />} />
-            <Route path="/course/:courseID" element={<CourseSingle />} />
-            <Route path="/assignments" element={<Assignments />} />
-            <Route path="/ai" element={<Ai />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/module/:moduleID" element={<Modules />} />
+          <Route element={<ProtectedRoutes/>}>
+            <Route element={<Universal />}>
+              <Route path="/" element={<Courses />} />
+              <Route path="/course/:courseID" element={<CourseSingle />} />
+              <Route path="/assignments" element={<Assignments />} />
+              <Route path="/ai" element={<Ai />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/module/:moduleID" element={<Modules />} />
+            </Route>
           </Route>
 
           <Route path="/login" element={<Login />} />
