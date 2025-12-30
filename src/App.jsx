@@ -10,6 +10,12 @@ import Ai from "./pages/Ai";
 import Profile from "./pages/Profile";
 import Modules from "./pages/Modules";
 import ProtectedRoutes from "./pages/ProtectedRoutes";
+import AdminDashboard from "./pages/AdminDashboard ";
+import AdminDepartments from "./pages/AdminDepartments";
+import AdminEnrollments from "./pages/AdminEnrollments";
+import AdminAssignRoles from "./pages/AdminAssignRoles";
+import { AdminUsersManagement } from "./pages/AdminUsersManagement";
+import AdminUniversal from "./components/admin/AdminUniversal";
 
 
 const App = () => {
@@ -17,7 +23,16 @@ const App = () => {
     <BrowserRouter>
       <div className="h-screen w-full bg-[#D7D7E3]">
         <Routes>
-          <Route element={<ProtectedRoutes/>}>
+          <Route element={<ProtectedRoutes />}>
+
+            <Route element={<AdminUniversal/>}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/departments" element={<AdminDepartments />} />
+              <Route path="/admin/enrollments" element={<AdminEnrollments />} />
+              <Route path="/admin/roles" element={<AdminAssignRoles />} />
+              <Route path="/admin/users" element={<AdminUsersManagement />} />
+            </Route>
+
             <Route element={<Universal />}>
               <Route path="/" element={<Courses />} />
               <Route path="/course/:courseID" element={<CourseSingle />} />

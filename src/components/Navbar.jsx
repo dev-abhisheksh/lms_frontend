@@ -60,7 +60,7 @@ const Navbar = () => {
         {/* Middle (desktop only) */}
         <div className="hidden lg:block">
           <h1 className="text-sm text-gray-700">
-            Hello, Abhishek
+            Hello, {userData?.fullName}
           </h1>
         </div>
 
