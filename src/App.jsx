@@ -17,6 +17,7 @@ import AdminEnrollments from "./pages/AdminEnrollments";
 import AdminAssignRoles from "./pages/AdminAssignRoles";
 import { AdminUsersManagement } from "./pages/AdminUsersManagement";
 import AdminBatches from "./pages/AdminBatches";
+import AdminAddUser from "./pages/AdminAddUser";
 import AdminUniversal from "./components/admin/AdminUniversal";
 
 
@@ -35,6 +36,7 @@ const App = () => {
               <Route path="/admin/batches" element={<AdminBatches />} />
               <Route path="/admin/roles" element={<AdminAssignRoles />} />
               <Route path="/admin/users" element={<AdminUsersManagement />} />
+              <Route path="/admin/add-user" element={<AdminAddUser />} />
             </Route>
 
             <Route element={<Universal />}>

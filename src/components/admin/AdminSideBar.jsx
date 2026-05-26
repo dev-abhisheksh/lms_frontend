@@ -46,6 +46,12 @@ const AdminSideBar = () => {
       icon: MdOutlineGroup,
       path: "/admin/users",
     },
+    {
+      id: "add-user",
+      label: "Add User",
+      icon: MdOutlineAssignmentInd,
+      path: "/admin/add-user",
+    },
   ];
 
   return (
