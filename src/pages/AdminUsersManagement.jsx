@@ -164,6 +164,13 @@ export const AdminUsersManagement = () => {
           </div>
         ) : (
           <>
+            {/* Important Info Banner */}
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800">
+                <span className="font-semibold">📌 To Enroll Users:</span> Copy the full User ID (MongoDB ObjectId) from below, then go to <a href="/admin/enrollments" className="text-amber-700 hover:text-amber-900 font-medium underline">Enrollments</a> to assign them to courses.
+              </p>
+            </div>
+
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               {/* Desktop Table View */}
               <div className="hidden md:block overflow-x-auto">
@@ -171,7 +178,7 @@ export const AdminUsersManagement = () => {
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        User ID
+                        Full User ID (for Enrollment)
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Name
@@ -188,8 +195,8 @@ export const AdminUsersManagement = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Joined
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Action
                       </th>
                     </tr>
                   </thead>
@@ -205,13 +212,13 @@ export const AdminUsersManagement = () => {
                         <tr key={user._id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">
-                              <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono text-gray-700">
-                                {user._id.substring(0, 8)}...
+                              <code className="text-xs bg-gray-900 text-green-400 px-3 py-2 rounded font-mono font-bold">
+                                {user._id}
                               </code>
                               <button
                                 onClick={() => copyUserId(user._id)}
-                                title="Copy full User ID"
-                                className="text-blue-600 hover:text-blue-900 text-xs font-medium"
+                                title="Copy full User ID for enrollment"
+                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded whitespace-nowrap"
                               >
                                 Copy
                               </button>
@@ -253,10 +260,10 @@ export const AdminUsersManagement = () => {
                               {formatDate(user.createdAt)}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <button
                               onClick={() => copyUserId(user._id)}
-                              className="text-blue-600 hover:text-blue-900 font-medium"
+                              className="text-blue-600 hover:text-blue-900 font-medium text-xs underline"
                             >
                               Copy ID
                             </button>
@@ -303,16 +310,10 @@ export const AdminUsersManagement = () => {
                         {user.email}
                       </div>
 
-                      <div className="flex items-center justify-between mb-3 p-2 bg-gray-100 rounded">
-                        <div className="text-xs font-mono text-gray-700">
-                          ID: {user._id.substring(0, 12)}...
+                      <div className="mb-3 p-2 bg-gray-900 rounded border border-gray-700">
+                        <div className="text-xs font-mono text-green-400 break-all font-bold">
+                          {user._id}
                         </div>
-                        <button
-                          onClick={() => copyUserId(user._id)}
-                          className="text-xs text-blue-600 hover:text-blue-900 font-medium"
-                        >
-                          Copy
-                        </button>
                       </div>
 
                       <div className="flex items-center justify-between text-xs text-gray-600 mb-3">
@@ -333,9 +334,9 @@ export const AdminUsersManagement = () => {
 
                       <button
                         onClick={() => copyUserId(user._id)}
-                        className="w-full text-sm text-blue-600 hover:text-blue-900 font-medium py-2 px-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                        className="w-full text-sm text-white font-semibold py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                       >
-                        Copy Full ID
+                        Copy Full ID for Enrollment
                       </button>
                     </div>
                   ))
@@ -390,12 +391,18 @@ export const AdminUsersManagement = () => {
             )}
 
             {/* Info Box */}
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <span className="font-semibold">💡 Tip:</span> Click "Copy" or
-                "Copy Full ID" to get a user's ID, then use it to enroll them in
-                courses from the Enrollments section.
+            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800 mb-2">
+                <span className="font-semibold">✓ How to Enroll Users:</span>
               </p>
+              <ol className="text-sm text-green-800 space-y-1 ml-4 list-decimal">
+                <li>Find the user in the list above</li>
+                <li>Click <span className="font-semibold">"Copy"</span> button to copy their full MongoDB ID (shown in dark box)</li>
+                <li>Go to <a href="/admin/enrollments" className="font-semibold underline hover:text-green-900">Enrollments</a> page</li>
+                <li>Select a course and click "Enroll User"</li>
+                <li>Paste the copied User ID into the input field</li>
+                <li>Select their role (Student/Teacher) and click "Enroll"</li>
+              </ol>
             </div>
           </>
         )}

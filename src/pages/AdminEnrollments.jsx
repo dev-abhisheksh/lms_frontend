@@ -279,13 +279,23 @@ const AdminEnrollments = () => {
                       onSubmit={handleEnrollSubmit}
                       className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6"
                     >
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
                         Enroll New User
                       </h3>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Need a User ID? Go to{" "}
+                        <a
+                          href="/admin/users"
+                          className="text-blue-600 hover:text-blue-900 font-medium underline"
+                        >
+                          Users Management
+                        </a>{" "}
+                        to find and copy the full MongoDB ID.
+                      </p>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <input
                           type="text"
-                          placeholder="Enter User ID"
+                          placeholder="Paste full User ID (MongoDB ID)"
                           value={enrollFormData.userId}
                           onChange={(e) =>
                             setEnrollFormData({
@@ -293,7 +303,7 @@ const AdminEnrollments = () => {
                               userId: e.target.value,
                             })
                           }
-                          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                         />
                         <select
                           value={enrollFormData.role}
@@ -315,6 +325,11 @@ const AdminEnrollments = () => {
                         >
                           {enrolling ? "Enrolling..." : "Enroll"}
                         </button>
+                      </div>
+                      <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                        <p className="text-xs text-blue-800">
+                          <span className="font-semibold">ℹ️ User ID Format:</span> This is the full MongoDB ID (24 characters). Example: <code className="bg-blue-100 px-1 rounded">507f1f77bcf86cd799439011</code>
+                        </p>
                       </div>
                     </form>
                   )}
