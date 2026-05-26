@@ -96,7 +96,7 @@ const AdminAddUser = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 overflow-hidden">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -230,7 +230,7 @@ const AdminAddUser = () => {
               <h2 className="text-xl font-bold">Departments</h2>
               <p className="text-gray-400 mt-1 text-sm">Select the department for this user.</p>
             </div>
-            <div className="flex-1 overflow-y-auto pr-1 space-y-3 scrollbar-hide">
+            <div className="flex-1 pr-1 space-y-3">
               {pagedDepartments.map((dept) => (
                 <button
                   key={dept._id}
