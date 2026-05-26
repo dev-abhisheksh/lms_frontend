@@ -29,6 +29,12 @@ const AdminSideBar = () => {
       path: "/admin/enrollments",
     },
     {
+      id: "batches",
+      label: "Batches",
+      icon: MdOutlineGroup,
+      path: "/admin/batches",
+    },
+    {
       id: "roles",
       label: "Assign Roles",
       icon: MdOutlineAssignmentInd,

@@ -16,6 +16,7 @@ import AdminCourses from "./pages/AdminCourses";
 import AdminEnrollments from "./pages/AdminEnrollments";
 import AdminAssignRoles from "./pages/AdminAssignRoles";
 import { AdminUsersManagement } from "./pages/AdminUsersManagement";
+import AdminBatches from "./pages/AdminBatches";
 import AdminUniversal from "./components/admin/AdminUniversal";
 
 
@@ -31,6 +32,7 @@ const App = () => {
               <Route path="/admin/departments" element={<AdminDepartments />} />
               <Route path="/admin/courses" element={<AdminCourses />} />
               <Route path="/admin/enrollments" element={<AdminEnrollments />} />
+              <Route path="/admin/batches" element={<AdminBatches />} />
               <Route path="/admin/roles" element={<AdminAssignRoles />} />
               <Route path="/admin/users" element={<AdminUsersManagement />} />
             </Route>
