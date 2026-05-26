@@ -15,7 +15,7 @@ const AdminUniversal = () => {
                     <AdminSideBar/>
                 </aside>
 
-                <main className="flex-1 h-full overflow-hidden">
+                <main className="flex-1 h-full overflow-y-auto">
                     <Outlet />
                 </main>
 
