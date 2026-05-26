@@ -1,178 +1,215 @@
 import React, { useEffect, useState } from "react";
 import { Departments } from "../API/department.api";
+import { getAllUsers } from "../API/auth.api";
+import { getAllCourses } from "../API/course.api";
+import { getBatches } from "../API/batch.api";
+import { useNavigate } from "react-router-dom";
+import {
+  MdOutlineSchool,
+  MdPeople,
+  MdMenuBook,
+  MdLayers,
+  MdArrowForward,
+  MdPerson,
+  MdOutlineAdminPanelSettings,
+} from "react-icons/md";
 
+// ── Stat card ─────────────────────────────────────────────────────────────────
+const StatCard = ({ icon: Icon, label, value, sub, color, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-left hover:shadow-md transition-all group w-full`}
+  >
+    <div className="flex items-start justify-between mb-3">
+      <div className={`p-2.5 rounded-lg ${color}`}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <MdArrowForward className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition mt-1" />
+    </div>
+    <p className="text-3xl font-bold text-gray-900">{value ?? "—"}</p>
+    <p className="text-sm font-medium text-gray-700 mt-0.5">{label}</p>
+    {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+  </button>
+);
+
+// ── Quick action card ─────────────────────────────────────────────────────────
+const ActionCard = ({ icon: Icon, title, desc, href, color }) => {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate(href)}
+      className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-left hover:shadow-md transition-all group flex items-center gap-4 w-full"
+    >
+      <div className={`p-2.5 rounded-lg shrink-0 ${color}`}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-gray-900">{title}</p>
+        <p className="text-xs text-gray-500 truncate">{desc}</p>
+      </div>
+      <MdArrowForward className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition ml-auto shrink-0" />
+    </button>
+  );
+};
+
+// ── Main component ────────────────────────────────────────────────────────────
 const AdminDashboard = () => {
-    const [allDepartments, setAllDepartments] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    departments: null,
+    courses: null,
+    students: null,
+    teachers: null,
+    batches: null,
+    managers: null,
+  });
+  const [activeDepts, setActiveDepts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchAllDepartments = async () => {
-            try {
-                const res = await Departments();
-                setAllDepartments(res.data.departments);
-            } catch (err) {
-                setError("Failed to load departments");
-                console.error(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
+  const adminName = localStorage.getItem("fullName") || "Admin";
 
-        fetchAllDepartments();
-    }, []);
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [deptRes, courseRes, batchRes] = await Promise.allSettled([
+          Departments(),
+          getAllCourses(),
+          getBatches(),
+        ]);
 
-    return (
-        <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 rounded-lg">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="mb-6">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Departments</h1>
-                    <p className="mt-1 text-sm text-gray-500">Manage your organization's departments</p>
-                </div>
+        const depts   = deptRes.status   === "fulfilled" ? deptRes.value.data.departments   || [] : [];
+        const courses = courseRes.status === "fulfilled" ? courseRes.value.data.courses || [] : [];
+        const batches = batchRes.status  === "fulfilled" ? batchRes.value.batches  || [] : [];
 
-                {/* Content Card */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        setActiveDepts(depts.filter(d => d.isActive).slice(0, 5));
 
-                    {/* Loading State */}
-                    {loading && (
-                        <div className="flex items-center justify-center py-16">
-                            <div className="text-center">
-                                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-                                <p className="mt-3 text-sm text-gray-500">Loading departments...</p>
-                            </div>
-                        </div>
-                    )}
+        setStats(prev => ({
+          ...prev,
+          departments: depts.length,
+          courses: courses.length,
+          batches: batches.length,
+        }));
+      } catch {}
 
-                    {/* Error State */}
-                    {error && (
-                        <div className="flex items-center justify-center py-16">
-                            <div className="text-center">
-                                <div className="mx-auto h-12 w-12 text-red-500">
-                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <p className="mt-3 text-sm font-medium text-red-600">{error}</p>
-                                <button
-                                    onClick={() => window.location.reload()}
-                                    className="mt-3 text-sm text-blue-600 hover:underline"
-                                >
-                                    Try again
-                                </button>
-                            </div>
-                        </div>
-                    )}
+      // User counts — separate so partial failure doesn't block
+      try {
+        const [studRes, teachRes, manRes] = await Promise.allSettled([
+          getAllUsers({ role: "student", limit: 1 }),
+          getAllUsers({ role: "teacher", limit: 1 }),
+          getAllUsers({ role: "manager", limit: 1 }),
+        ]);
+        setStats(prev => ({
+          ...prev,
+          students: studRes.status  === "fulfilled" ? studRes.value.data.meta?.total  ?? "—" : "—",
+          teachers: teachRes.status === "fulfilled" ? teachRes.value.data.meta?.total ?? "—" : "—",
+          managers: manRes.status   === "fulfilled" ? manRes.value.data.meta?.total   ?? "—" : "—",
+        }));
+      } catch {}
 
-                    {/* Desktop Table View */}
-                    {!loading && !error && (
-                        <>
-                            <div className="hidden md:block overflow-x-auto rounded-2xl">
-                                <table className="w-full">
-                                    <thead className="bg-gray-50 border-b border-gray-200">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Name
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Code
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Description
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Status
-                                            </th>
-                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Actions
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {allDepartments.map((dept) => (
-                                            <tr key={dept._id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-medium text-gray-900">{dept.name}</div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm text-gray-500">{dept.code}</div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm text-gray-500 max-w-xs truncate">{dept.description}</div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${dept.isActive
-                                                            ? "bg-green-100 text-green-800"
-                                                            : "bg-red-100 text-red-800"
-                                                        }`}>
-                                                        {dept.isActive ? "Active" : "Inactive"}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                                                    <button className="text-blue-600 hover:text-blue-900 font-medium mr-4">
-                                                        Edit
-                                                    </button>
-                                                    <button className="text-red-600 hover:text-red-900 font-medium">
-                                                        Delete
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+      setLoading(false);
+    };
+    load();
+  }, []);
 
-                            {/* Mobile Card View */}
-                            <div className="md:hidden divide-y divide-gray-200">
-                                {allDepartments.map((dept) => (
-                                    <div key={dept._id} className="p-4 hover:bg-gray-50 transition-colors">
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div className="flex-1">
-                                                <h3 className="text-base font-semibold text-gray-900">{dept.name}</h3>
-                                                <p className="text-sm text-gray-500 mt-1">Code: {dept.code}</p>
-                                            </div>
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${dept.isActive
-                                                    ? "bg-green-100 text-green-800"
-                                                    : "bg-red-100 text-red-800"
-                                                }`}>
-                                                {dept.isActive ? "Active" : "Inactive"}
-                                            </span>
-                                        </div>
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 rounded-lg">
+      <div className="max-w-7xl mx-auto space-y-8">
 
-                                        {dept.description && (
-                                            <p className="text-sm text-gray-600 mb-3 line-clamp-2">{dept.description}</p>
-                                        )}
-
-                                        <div className="flex gap-3 pt-3 border-t border-gray-100">
-                                            <button className="flex-1 text-sm text-blue-600 hover:text-blue-900 font-medium py-2 px-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
-                                                Edit
-                                            </button>
-                                            <button className="flex-1 text-sm text-red-600 hover:text-red-900 font-medium py-2 px-4 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
-                                                Delete
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Empty State */}
-                            {allDepartments.length === 0 && (
-                                <div className="text-center py-16">
-                                    <div className="mx-auto h-12 w-12 text-gray-400">
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                        </svg>
-                                    </div>
-                                    <h3 className="mt-3 text-sm font-medium text-gray-900">No departments</h3>
-                                    <p className="mt-1 text-sm text-gray-500">Get started by creating a new department.</p>
-                                </div>
-                            )}
-                        </>
-                    )}
-                </div>
-            </div>
+        {/* ── Welcome header ─────────────────────────────────────────────── */}
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-indigo-100 rounded-xl">
+            <MdOutlineAdminPanelSettings className="w-8 h-8 text-indigo-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              Welcome back, {adminName}
+            </h1>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Here's an overview of your LMS — {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
+            </p>
+          </div>
         </div>
-    );
+
+        {/* ── Stats grid ─────────────────────────────────────────────────── */}
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse h-28" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            <StatCard icon={MdOutlineSchool}  label="Departments" value={stats.departments} color="bg-indigo-100 text-indigo-600" onClick={() => navigate("/admin/departments")} />
+            <StatCard icon={MdMenuBook}       label="Courses"     value={stats.courses}     color="bg-blue-100 text-blue-600"   onClick={() => navigate("/admin/courses")} />
+            <StatCard icon={MdLayers}         label="Batches"     value={stats.batches}     color="bg-purple-100 text-purple-600" onClick={() => navigate("/admin/batches")} />
+            <StatCard icon={MdPeople}         label="Students"    value={stats.students}    color="bg-green-100 text-green-600" onClick={() => navigate("/admin/users")} />
+            <StatCard icon={MdPerson}         label="Teachers"    value={stats.teachers}    color="bg-yellow-100 text-yellow-600" onClick={() => navigate("/admin/users")} />
+            <StatCard icon={MdPerson}         label="Managers"    value={stats.managers}    color="bg-rose-100 text-rose-600"   onClick={() => navigate("/admin/users")} />
+          </div>
+        )}
+
+        {/* ── Bottom row ─────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Active departments list */}
+          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-900">Active Departments</h2>
+              <button onClick={() => navigate("/admin/departments")} className="text-xs text-indigo-600 hover:underline font-medium">
+                Manage →
+              </button>
+            </div>
+            {loading ? (
+              <div className="p-6 space-y-3">
+                {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />)}
+              </div>
+            ) : activeDepts.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-sm text-gray-500">No active departments yet.</p>
+                <button onClick={() => navigate("/admin/departments")} className="mt-2 text-sm text-indigo-600 hover:underline font-medium">
+                  Create your first department →
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {activeDepts.map(dept => (
+                  <div key={dept._id} className="px-5 py-3.5 flex items-center justify-between hover:bg-gray-50">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{dept.name}</p>
+                      <p className="text-xs text-gray-400 font-mono">{dept.code}</p>
+                    </div>
+                    {dept.manager ? (
+                      <div className="flex items-center gap-1.5 text-xs text-indigo-600">
+                        <MdPerson className="w-3.5 h-3.5" />
+                        {dept.manager.fullName}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">No manager</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-4 bg-gray-50 border-b border-gray-200">
+              <h2 className="text-base font-semibold text-gray-900">Quick Actions</h2>
+            </div>
+            <div className="p-4 space-y-3">
+              <ActionCard icon={MdPeople}       title="Add User"          desc="Register a new student or teacher"     href="/admin/add-user"    color="bg-green-100 text-green-600" />
+              <ActionCard icon={MdMenuBook}     title="Create Course"     desc="Add a new course to a department"       href="/admin/courses"     color="bg-blue-100 text-blue-600" />
+              <ActionCard icon={MdLayers}       title="Manage Batches"    desc="Promote or assign courses to batches"   href="/admin/batches"     color="bg-purple-100 text-purple-600" />
+              <ActionCard icon={MdOutlineSchool} title="Assign Teachers"  desc="Assign teachers to courses"             href="/admin/enrollments" color="bg-yellow-100 text-yellow-600" />
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default AdminDashboard;
