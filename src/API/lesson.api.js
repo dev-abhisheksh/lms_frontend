@@ -1,18 +1,4 @@
 
-import axios from "axios";
+import { API } from "./axiosInstance.api.js";
 
-const getToken = () => localStorage.getItem("accessToken")
-
-const API = axios.create({
-    baseURL: /*"http://localhost:4000/api/v1/lessons"*/ "https://lms-67ch.onrender.com/api/v1/lessons"
-})
-
-API.interceptors.request.use((config) => {
-    const token = getToken()
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-})
-
-export const allLessons = (moduleID) => API.get(`/${moduleID}`)
+export const allLessons = (moduleID) => API.get(`/lessons/${moduleID}`)
