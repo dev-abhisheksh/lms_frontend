@@ -17,10 +17,10 @@ const AdminEnrollments = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [showEnrollForm, setShowEnrollForm] = useState(false);
 
-  // Form states
+  // Form states — teachers only (students are enrolled via Batches page)
   const [enrollFormData, setEnrollFormData] = useState({
     userId: "",
-    role: "student",
+    role: "teacher",
   });
   const [enrolling, setEnrolling] = useState(false);
 
@@ -153,9 +153,10 @@ const AdminEnrollments = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Manage Enrollments</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Assign Teachers to Courses</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Enroll users in courses or view existing enrollments
+            Assign teachers to courses so they can manage content and view enrolled students.
+            Students are enrolled in bulk via the <strong>Batches</strong> page.
           </p>
         </div>
 
@@ -268,7 +269,7 @@ const AdminEnrollments = () => {
                         onClick={() => setShowEnrollForm(!showEnrollForm)}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                       >
-                        {showEnrollForm ? "Cancel" : "Enroll User"}
+                        {showEnrollForm ? "Cancel" : "Assign Teacher"}
                       </button>
                     </div>
                   </div>
@@ -280,17 +281,17 @@ const AdminEnrollments = () => {
                       className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6"
                     >
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        Enroll New User
+                        Assign a Teacher
                       </h3>
                       <p className="text-sm text-gray-600 mb-4">
-                        Need a User ID? Go to{" "}
+                        Paste the teacher's User ID. Find it on the{" "}
                         <a
                           href="/admin/users"
                           className="text-blue-600 hover:text-blue-900 font-medium underline"
                         >
-                          Users Management
+                          Users
                         </a>{" "}
-                        to find and copy the full MongoDB ID.
+                        page. Only users with the <strong>teacher</strong> role can be assigned here.
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <input
@@ -305,30 +306,20 @@ const AdminEnrollments = () => {
                           }
                           className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                         />
-                        <select
-                          value={enrollFormData.role}
-                          onChange={(e) =>
-                            setEnrollFormData({
-                              ...enrollFormData,
-                              role: e.target.value,
-                            })
-                          }
-                          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="student">Student</option>
-                          <option value="teacher">Teacher</option>
-                        </select>
+                        <div className="px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-600 font-medium">
+                          Role: Teacher
+                        </div>
                         <button
                           type="submit"
                           disabled={enrolling}
                           className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
                         >
-                          {enrolling ? "Enrolling..." : "Enroll"}
+                          {enrolling ? "Assigning..." : "Assign Teacher"}
                         </button>
                       </div>
                       <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
                         <p className="text-xs text-blue-800">
-                          <span className="font-semibold">ℹ️ User ID Format:</span> This is the full MongoDB ID (24 characters). Example: <code className="bg-blue-100 px-1 rounded">507f1f77bcf86cd799439011</code>
+                          <span className="font-semibold">ℹ️ Note:</span> Only users with the global <strong>teacher</strong> role can be assigned. User ID is a 24-character MongoDB ID. Example: <code className="bg-blue-100 px-1 rounded">507f1f77bcf86cd799439011</code>
                         </p>
                       </div>
                     </form>
