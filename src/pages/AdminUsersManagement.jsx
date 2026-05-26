@@ -1,16 +1,35 @@
 import React, { useEffect, useState } from "react";
 import { getAllUsers } from "../API/auth.api";
+import { Departments } from "../API/department.api";
 import { getMyEnrollments } from "../API/enrollment.api";
 
 export const AdminUsersManagement = () => {
   const [users, setUsers] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [enrollmentData, setEnrollmentData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
+  const [filterDepartment, setFilterDepartment] = useState("all");
+  const [filterYear, setFilterYear] = useState("all");
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({});
+
+  const years = ["FY", "SY", "TY"];
+
+  // Fetch departments on component mount
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const res = await Departments();
+        setDepartments(res.data.departments || []);
+      } catch (err) {
+        console.error("Failed to fetch departments:", err);
+      }
+    };
+    fetchDepartments();
+  }, []);
 
   // Fetch all users on component mount
   useEffect(() => {
@@ -22,6 +41,8 @@ export const AdminUsersManagement = () => {
           limit: 20,
           search: searchTerm || undefined,
           role: filterRole !== "all" ? filterRole : undefined,
+          department: filterDepartment !== "all" ? filterDepartment : undefined,
+          year: filterYear !== "all" ? filterYear : undefined,
         });
         setUsers(res.data.users || []);
         setPagination(res.data.meta || {});
@@ -35,7 +56,7 @@ export const AdminUsersManagement = () => {
     };
 
     fetchUsers();
-  }, [page, searchTerm, filterRole]);
+  }, [page, searchTerm, filterRole, filterDepartment, filterYear]);
 
   // Fetch enrollment information for each user
   useEffect(() => {
@@ -122,7 +143,7 @@ export const AdminUsersManagement = () => {
 
         {/* Search and Filter */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <input
                 type="text"
@@ -149,6 +170,40 @@ export const AdminUsersManagement = () => {
                 <option value="manager">Manager</option>
                 <option value="teacher">Teacher</option>
                 <option value="student">Student</option>
+              </select>
+            </div>
+            <div>
+              <select
+                value={filterDepartment}
+                onChange={(e) => {
+                  setFilterDepartment(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Departments</option>
+                {departments.map((dept) => (
+                  <option key={dept._id} value={dept._id}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <select
+                value={filterYear}
+                onChange={(e) => {
+                  setFilterYear(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Years</option>
+                {years.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -184,16 +239,16 @@ export const AdminUsersManagement = () => {
                         Name
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Email
+                        Department
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Year
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Role
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Joined
                       </th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Action
@@ -232,8 +287,22 @@ export const AdminUsersManagement = () => {
                               @{user.username}
                             </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-500">{user.email}</div>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-600">
+                              {user.department ? user.department.name : "-"}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {user.department ? user.department.code : ""}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              user.year
+                                ? "bg-purple-100 text-purple-800"
+                                : "bg-gray-100 text-gray-600"
+                            }`}>
+                              {user.year || "N/A"}
+                            </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span
@@ -254,11 +323,6 @@ export const AdminUsersManagement = () => {
                             >
                               {user.isActive ? "Active" : "Inactive"}
                             </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">
-                              {formatDate(user.createdAt)}
-                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-center">
                             <button
@@ -306,8 +370,15 @@ export const AdminUsersManagement = () => {
                         </span>
                       </div>
 
-                      <div className="text-sm text-gray-600 mb-3">
-                        {user.email}
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-3">
+                        <div>
+                          <span className="font-semibold">Department:</span>
+                          <p className="text-gray-700">{user.department ? user.department.name : "-"}</p>
+                        </div>
+                        <div>
+                          <span className="font-semibold">Year:</span>
+                          <p className="text-purple-700 font-medium">{user.year || "-"}</p>
+                        </div>
                       </div>
 
                       <div className="mb-3 p-2 bg-gray-900 rounded border border-gray-700">
