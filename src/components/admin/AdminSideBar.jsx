@@ -5,6 +5,7 @@ import {
   MdOutlineAssignmentInd,
   MdOutlineGroup,
   MdOutlineHowToReg,
+  MdOutlineSchool,
 } from "react-icons/md";
 
 const AdminSideBar = () => {
@@ -14,6 +15,12 @@ const AdminSideBar = () => {
       label: "Departments",
       icon: MdOutlineAccountTree,
       path: "/admin",
+    },
+    {
+      id: "courses",
+      label: "Courses",
+      icon: MdOutlineSchool,
+      path: "/admin/courses",
     },
     {
       id: "enrollments",

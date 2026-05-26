@@ -12,6 +12,7 @@ import Modules from "./pages/Modules";
 import ProtectedRoutes from "./pages/ProtectedRoutes";
 import AdminDashboard from "./pages/AdminDashboard ";
 import AdminDepartments from "./pages/AdminDepartments";
+import AdminCourses from "./pages/AdminCourses";
 import AdminEnrollments from "./pages/AdminEnrollments";
 import AdminAssignRoles from "./pages/AdminAssignRoles";
 import { AdminUsersManagement } from "./pages/AdminUsersManagement";
@@ -28,6 +29,7 @@ const App = () => {
             <Route element={<AdminUniversal/>}>
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/departments" element={<AdminDepartments />} />
+              <Route path="/admin/courses" element={<AdminCourses />} />
               <Route path="/admin/enrollments" element={<AdminEnrollments />} />
               <Route path="/admin/roles" element={<AdminAssignRoles />} />
               <Route path="/admin/users" element={<AdminUsersManagement />} />
