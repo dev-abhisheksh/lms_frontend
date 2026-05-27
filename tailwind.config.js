@@ -11,6 +11,11 @@ export default {
         sans: ["Inter", "system-ui", "sans-serif"],
         heading: ["Poppins", "system-ui", "sans-serif"],
       },
+      colors: {
+        primary: 'rgb(var(--color-primary) / <alpha-value>)',
+        secondary: 'rgb(var(--color-secondary) / <alpha-value>)',
+        accent: 'rgb(var(--color-accent) / <alpha-value>)',
+      },
     },
   },
   plugins: [],

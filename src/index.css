@@ -15,6 +15,43 @@
     }
 }
 
+:root {
+    /* RGB components for use with Tailwind css(var) alpha support */
+    --color-primary: 112 52 255; /* #7034FF */
+    --color-secondary: 99 102 241; /* indigo-500-ish */
+    --color-accent: 16 185 129; /* emerald-500 */
+
+    --text-primary: 17 24 39; /* gray-900 */
+    --bg-primary: 243 244 246; /* gray-50 */
+
+    /* Reduce base font to make text smaller across the app */
+    --base-font-size: 14px;
+}
+
+html { font-size: var(--base-font-size); }
+
+@layer base {
+    body {
+        color: rgb(var(--text-primary));
+        background-color: rgb(var(--bg-primary));
+        font-size: 1rem; /* equals 14px now */
+        line-height: 1.45;
+    }
+
+    /* Slightly smaller heading scale */
+    h1 { font-size: 1.5rem; /* 21px */ }
+    h2 { font-size: 1.25rem; /* 17.5px */ }
+    h3 { font-size: 1.125rem; /* 15.75px */ }
+    h4 { font-size: 1rem; /* 14px */ }
+    h5 { font-size: 0.9375rem; /* 13.125px */ }
+    h6 { font-size: 0.875rem; /* 12.25px */ }
+
+    /* Theme utility fallbacks for non-Tailwind usages */
+    .text-primary { color: rgb(var(--color-primary)); }
+    .bg-primary { background-color: rgb(var(--color-primary)); }
+    .btn-primary { background-color: rgb(var(--color-primary)); color: white; }
+}
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
