@@ -2,11 +2,13 @@ import React, { useEffect, useRef, useState } from 'react'
 import { IoIosArrowDown, IoMdNotificationsOutline, IoIosSearch } from "react-icons/io";
 import { MdSchool } from "react-icons/md";
 import { getCurrentUser, logoutUser } from '../API/auth.api';
+import { useNotifications } from '../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
   const [toggleProfileMenu, setToggleProfileMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false)
+  const { notificationsVisible, toggleNotifications } = useNotifications();
   const [userData, setUserData] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate()
@@ -94,7 +96,17 @@ const Navbar = () => {
           >
             <IoIosSearch size={22} className="sm:w-[26px] sm:h-[26px] cursor-pointer" />
           </div>
-          <IoMdNotificationsOutline size={22} className="sm:w-[26px] sm:h-[26px]" />
+          <button
+            onClick={toggleNotifications}
+            className={`p-2 rounded-md cursor-pointer transition-all duration-200 ${
+              notificationsVisible 
+                ? "text-gray-600 hover:text-[#7034FF]" 
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+            title={notificationsVisible ? "Hide notifications" : "Show notifications"}
+          >
+            <IoMdNotificationsOutline size={22} className="sm:w-[26px] sm:h-[26px]" />
+          </button>
 
           {/* Avatar + Menu */}
           <div ref={menuRef} className="relative">
