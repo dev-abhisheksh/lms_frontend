@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { getAllCourses, getCoursesByDeptAndYear } from "../API/course.api";
+import React, { useEffect, useState, useCallback } from "react";
+import { getAllCourses } from "../API/course.api";
 import {
   enrollUserInCourse,
   getAllEnrollmentsForCourse,
@@ -7,252 +7,357 @@ import {
   removeUserFromCourse,
 } from "../API/enrollment.api";
 import { Departments } from "../API/department.api";
-import { getUserById } from "../API/auth.api";
+import { getAllUsers } from "../API/auth.api";
 
+// ─── Badge helper ────────────────────────────────────────────────────
+const YearBadge = ({ year }) => {
+  const colours = {
+    FY: "bg-blue-100 text-blue-700",
+    SY: "bg-purple-100 text-purple-700",
+    TY: "bg-green-100 text-green-700",
+  };
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+        colours[year] || "bg-gray-100 text-gray-700"
+      }`}
+    >
+      {year || "N/A"}
+    </span>
+  );
+};
+
+const RoleBadge = ({ role }) => {
+  const styles =
+    role === "teacher"
+      ? "bg-green-100 text-green-800"
+      : "bg-blue-100 text-blue-800";
+  return (
+    <span
+      className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${styles}`}
+    >
+      {role}
+    </span>
+  );
+};
+
+// ─── Component ───────────────────────────────────────────────────────
 const AdminEnrollments = () => {
+  // Lists
   const [courses, setCourses] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+
+  // Filter state (sidebar)
   const [selectedDept, setSelectedDept] = useState(null);
-  const [selectedYear, setSelectedYear] = useState(null);
+  const [selectedYear, setSelectedYear] = useState("");
+
+  // Selection
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [enrollments, setEnrollments] = useState([]);
   const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
+
+  // has the user applied at least one filter?
+  const [hasFiltered, setHasFiltered] = useState(false);
+
+  // UI states
+  const [loading, setLoading] = useState(false);
+  const [enrollLoading, setEnrollLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
-  const [showEnrollForm, setShowEnrollForm] = useState(false);
 
-  // Form states — teachers only (students are enrolled via Batches page)
-  const [enrollFormData, setEnrollFormData] = useState({
-    userId: "",
-    role: "teacher",
-  });
+  // Assign-teacher form
+  const [showAssignForm, setShowAssignForm] = useState(false);
+  const [selectedTeacherId, setSelectedTeacherId] = useState("");
+  const [teacherSearch, setTeacherSearch] = useState("");
   const [enrolling, setEnrolling] = useState(false);
 
-  // Fetch all courses on component mount
+  // ── Initial load — only departments + teachers, NO courses yet ─────
   useEffect(() => {
-    const load = async () => {
+    const init = async () => {
       try {
         setLoading(true);
-        const [deptRes, courseRes] = await Promise.all([Departments(), getAllCourses()]);
+        const [deptRes, teacherRes] = await Promise.all([
+          Departments(),
+          getAllUsers({ role: "teacher", limit: 200 }),
+        ]);
         setDepartments(deptRes.data.departments || []);
-        setCourses(courseRes.data.courses || []);
+        setTeachers(teacherRes.data.users || []);
         setError(null);
       } catch (err) {
-        console.error("Failed to fetch courses:", err);
-        setError("Failed to load courses. Please try again.");
+        console.error("Init failed:", err);
+        setError("Failed to load data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
+  }, []);
+
+  // ── Fetch courses only when a filter is applied ───────────────────
+  useEffect(() => {
+    // Do nothing until the user picks at least one filter
+    if (!selectedDept && !selectedYear) {
+      setCourses([]);
+      setSelectedCourse(null);
+      setHasFiltered(false);
+      return;
+    }
+
+    const fetchFiltered = async () => {
+      try {
+        setLoading(true);
+        setHasFiltered(true);
+        const params = { isPublished: true }; // ← only current published courses
+        if (selectedDept) params.departmentId = selectedDept._id;
+        if (selectedYear) params.year = selectedYear;
+        const res = await getAllCourses(params);
+        setCourses(res.data.courses || []);
+        setSelectedCourse(null);
+        setError(null);
+      } catch (err) {
+        console.error("Filter failed:", err);
+        setError("Failed to load courses.");
       } finally {
         setLoading(false);
       }
     };
 
-    load();
-  }, []);
+    fetchFiltered();
+  }, [selectedDept, selectedYear]);
 
-  // Fetch enrollments when a course is selected
+  // ── Fetch enrollments when a course is selected ──────────────────
   useEffect(() => {
     if (!selectedCourse) {
       setEnrollments([]);
       setSummary(null);
       return;
     }
-
-    const fetchEnrollmentData = async () => {
+    const fetchData = async () => {
       try {
-        setLoading(true);
+        setEnrollLoading(true);
         const [enrollRes, summaryRes] = await Promise.all([
           getAllEnrollmentsForCourse(selectedCourse._id),
           getCourseEnrollmentSummary(selectedCourse._id),
         ]);
-
         setEnrollments(enrollRes.data.enrollments || []);
         setSummary(summaryRes.data.summary || null);
         setError(null);
       } catch (err) {
-        console.error("Failed to fetch enrollments:", err);
-        setError("Failed to load enrollments. Please try again.");
+        console.error("Enrollment fetch failed:", err);
+        setError("Failed to load enrollments.");
       } finally {
-        setLoading(false);
+        setEnrollLoading(false);
       }
     };
-
-    fetchEnrollmentData();
+    fetchData();
   }, [selectedCourse]);
 
-  // Fetch courses when department/year filters change
-  useEffect(() => {
-    const fetchFiltered = async () => {
-      if (!selectedDept && !selectedYear) return;
-      try {
-        setLoading(true);
-        const deptId = selectedDept?._id;
-        const res = await getCoursesByDeptAndYear(deptId, selectedYear);
-        setCourses(res.data.courses || []);
-        setError(null);
-      } catch (err) {
-        console.error("Failed to fetch filtered courses:", err);
-        setError("Failed to load courses. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchFiltered();
-  }, [selectedDept, selectedYear]);
+  // ── Helpers ───────────────────────────────────────────────────────
+  const flash = (msg) => {
+    setSuccessMessage(msg);
+    setTimeout(() => setSuccessMessage(""), 3500);
+  };
 
-  const handleFetchTeacher = async () => {
-    if (!enrollFormData.userId.trim()) return alert("Enter User ID first");
-    try {
-      const res = await getUserById(enrollFormData.userId.trim());
-      const { user, managedCourses } = res.data;
-      alert(`${user.fullName} (${user.email}) — Manages ${managedCourses.length} course(s):\n${managedCourses.map(c => c.title).join('\n')}`);
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || 'Failed to fetch teacher');
-    }
-  }
+  const refreshEnrollments = useCallback(async () => {
+    if (!selectedCourse) return;
+    const [enrollRes, summaryRes] = await Promise.all([
+      getAllEnrollmentsForCourse(selectedCourse._id),
+      getCourseEnrollmentSummary(selectedCourse._id),
+    ]);
+    setEnrollments(enrollRes.data.enrollments || []);
+    setSummary(summaryRes.data.summary || null);
+  }, [selectedCourse]);
 
-  // Handle enrollment form submission
-  const handleEnrollSubmit = async (e) => {
+  // ── Assign teacher ────────────────────────────────────────────────
+  const handleAssignTeacher = async (e) => {
     e.preventDefault();
-
-    if (!enrollFormData.userId.trim()) {
-      alert("Please enter a User ID");
-      return;
-    }
-
+    if (!selectedTeacherId) return alert("Select a teacher first.");
     try {
       setEnrolling(true);
       await enrollUserInCourse(selectedCourse._id, {
-        userId: enrollFormData.userId.trim(),
-        role: enrollFormData.role,
+        userId: selectedTeacherId,
+        role: "teacher",
       });
-
-      setSuccessMessage(
-        `User enrolled successfully as ${enrollFormData.role}!`
-      );
-      setEnrollFormData({ userId: "", role: "teacher" });
-      setShowEnrollForm(false);
-
-      // Refresh enrollments
-      const [enrollRes, summaryRes] = await Promise.all([
-        getAllEnrollmentsForCourse(selectedCourse._id),
-        getCourseEnrollmentSummary(selectedCourse._id),
-      ]);
-
-      setEnrollments(enrollRes.data.enrollments || []);
-      setSummary(summaryRes.data.summary || null);
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(""), 3000);
+      flash("Teacher assigned successfully!");
+      setSelectedTeacherId("");
+      setTeacherSearch("");
+      setShowAssignForm(false);
+      await refreshEnrollments();
     } catch (err) {
-      console.error("Failed to enroll user:", err);
-      alert(
-        err.response?.data?.message ||
-          "Failed to enroll user. Please check the User ID and try again."
-      );
+      alert(err.response?.data?.message || "Failed to assign teacher.");
     } finally {
       setEnrolling(false);
     }
   };
 
-  // Handle removing user from course
+  // ── Remove user ───────────────────────────────────────────────────
   const handleRemoveUser = async (userId, userName) => {
-    if (
-      !window.confirm(`Are you sure you want to remove ${userName} from this course?`)
-    ) {
-      return;
-    }
-
+    if (!window.confirm(`Remove ${userName} from this course?`)) return;
     try {
       await removeUserFromCourse(selectedCourse._id, userId);
-      setSuccessMessage(`${userName} removed from course successfully!`);
-
-      // Refresh enrollments
-      const [enrollRes, summaryRes] = await Promise.all([
-        getAllEnrollmentsForCourse(selectedCourse._id),
-        getCourseEnrollmentSummary(selectedCourse._id),
-      ]);
-
-      setEnrollments(enrollRes.data.enrollments || []);
-      setSummary(summaryRes.data.summary || null);
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(""), 3000);
+      flash(`${userName} removed successfully.`);
+      await refreshEnrollments();
     } catch (err) {
-      console.error("Failed to remove user:", err);
-      alert(
-        err.response?.data?.message || "Failed to remove user. Please try again."
-      );
+      alert(err.response?.data?.message || "Failed to remove user.");
     }
   };
 
+  // ── Filtered teacher list for the dropdown ────────────────────────
+  const filteredTeachers = teachers.filter((t) => {
+    const q = teacherSearch.toLowerCase();
+    return (
+      t.fullName?.toLowerCase().includes(q) ||
+      t.email?.toLowerCase().includes(q) ||
+      t.username?.toLowerCase().includes(q)
+    );
+  });
+
+  // Already-enrolled teacher IDs (to gray them out)
+  const enrolledTeacherIds = new Set(
+    enrollments
+      .filter((e) => e.role === "teacher")
+      .map((e) => e.user._id)
+  );
+
+  // ── Render ────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 rounded-lg">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+
+        {/* ── Page Header ─────────────────────────────────────── */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Assign Teachers to Courses</h1>
           <p className="mt-1 text-sm text-gray-500">
             Assign teachers to courses so they can manage content and view enrolled students.
-            Students are enrolled in bulk via the <strong>Batches</strong> page.
+            Students are enrolled in bulk via the{" "}
+            <a href="/admin/batches" className="text-blue-600 underline font-medium">Batches</a> page.
           </p>
         </div>
 
-        {/* Success Message */}
+        {/* ── Alerts ──────────────────────────────────────────── */}
         {successMessage && (
           <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-green-800 font-medium">{successMessage}</p>
+            <p className="text-green-800 font-medium">✓ {successMessage}</p>
           </div>
         )}
-
-        {/* Error Message */}
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-800 font-medium">{error}</p>
           </div>
         )}
 
-        {/* Content */}
+        {/* ── Initial Loading ──────────────────────────────────── */}
         {loading && !selectedCourse ? (
-          <div className="flex items-center justify-center py-16">
+          <div className="flex items-center justify-center py-20">
             <div className="text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-              <p className="mt-3 text-sm text-gray-500">Loading courses...</p>
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent" />
+              <p className="mt-3 text-sm text-gray-500">Loading courses…</p>
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Courses Sidebar */}
+
+            {/* ══ LEFT SIDEBAR ══════════════════════════════════ */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-4">
-                <div className="p-4 bg-gray-50 border-b border-gray-200">
+
+                {/* Sidebar header with filters */}
+                <div className="p-4 bg-gray-50 border-b border-gray-200 space-y-3">
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Courses ({courses.length})
+                    Courses{" "}
+                    <span className="text-sm font-normal text-gray-500">
+                      ({courses.length})
+                    </span>
                   </h2>
+
+                  {/* Department filter */}
+                  <select
+                    value={selectedDept?._id || ""}
+                    onChange={(e) =>
+                      setSelectedDept(
+                        departments.find((d) => d._id === e.target.value) || null
+                      )
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">All Departments</option>
+                    {departments.map((d) => (
+                      <option key={d._id} value={d._id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Year filter */}
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">All Years</option>
+                    <option value="FY">FY — First Year</option>
+                    <option value="SY">SY — Second Year</option>
+                    <option value="TY">TY — Third Year</option>
+                  </select>
+
+                  {/* Clear filters */}
+                  {(selectedDept || selectedYear) && (
+                    <button
+                      onClick={() => {
+                        setSelectedDept(null);
+                        setSelectedYear("");
+                      }}
+                      className="w-full text-xs text-blue-600 hover:text-blue-800 font-medium py-1"
+                    >
+                      ✕ Clear filters
+                    </button>
+                  )}
                 </div>
 
-                <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-                  {courses.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500">
-                      No courses available
+                {/* Course list */}
+                <div className="divide-y divide-gray-200 max-h-[520px] overflow-y-auto">
+                  {loading ? (
+                    <div className="p-6 text-center">
+                      <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent" />
+                    </div>
+                  ) : !hasFiltered ? (
+                    <div className="p-6 text-center space-y-2">
+                      <div className="text-3xl">🔍</div>
+                      <p className="text-sm font-medium text-gray-700">Select a filter above</p>
+                      <p className="text-xs text-gray-400">
+                        Choose a department and/or year to see courses.
+                      </p>
+                    </div>
+                  ) : courses.length === 0 ? (
+                    <div className="p-6 text-center text-gray-500 text-sm">
+                      No published courses found for this filter.
                     </div>
                   ) : (
                     courses.map((course) => (
                       <button
                         key={course._id}
-                        onClick={() => setSelectedCourse(course)}
+                        onClick={() => {
+                          setSelectedCourse(course);
+                          setShowAssignForm(false);
+                        }}
                         className={`w-full text-left p-4 transition-colors ${
                           selectedCourse?._id === course._id
                             ? "bg-blue-50 border-l-4 border-blue-600"
-                            : "hover:bg-gray-50"
+                            : "hover:bg-gray-50 border-l-4 border-transparent"
                         }`}
                       >
-                        <h3 className="font-medium text-gray-900">
-                          {course.title}
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {course.courseCode}
-                        </p>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h3 className="font-medium text-gray-900 text-sm truncate">
+                              {course.title}
+                            </h3>
+                            <p className="text-xs text-gray-500 mt-0.5 truncate">
+                              {course.courseCode}
+                            </p>
+                          </div>
+                          <YearBadge year={course.year} />
+                        </div>
                       </button>
                     ))
                   )}
@@ -260,262 +365,231 @@ const AdminEnrollments = () => {
               </div>
             </div>
 
-            {/* Enrollments Main Area */}
-            <div className="lg:col-span-2">
+            {/* ══ RIGHT PANEL ═══════════════════════════════════ */}
+            <div className="lg:col-span-2 space-y-5">
               {!selectedCourse ? (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-                  <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
-                    <svg
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                      />
+                /* Empty state */
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                  <div className="mx-auto h-14 w-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                    <svg className="h-7 w-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Select a Course
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    Select a course
                   </h3>
-                  <p className="text-gray-500">
-                    Choose a course from the list to manage its enrollments
+                  <p className="text-sm text-gray-500">
+                    Pick a course from the left panel to manage its teacher assignments.
                   </p>
                 </div>
               ) : (
                 <>
-                  {/* Course Header */}
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h2 className="text-2xl font-bold text-gray-900">
-                          {selectedCourse.title}
-                        </h2>
+                  {/* ── Course Header Card ───────────────────────── */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="text-xl font-bold text-gray-900">
+                            {selectedCourse.title}
+                          </h2>
+                          <YearBadge year={selectedCourse.year} />
+                        </div>
                         <p className="text-sm text-gray-500 mt-1">
-                          Code: {selectedCourse.courseCode}
+                          Code: <span className="font-mono">{selectedCourse.courseCode}</span>
                         </p>
                         {selectedCourse.description && (
-                          <p className="text-sm text-gray-600 mt-2">
+                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                             {selectedCourse.description}
                           </p>
                         )}
                       </div>
                       <button
-                        onClick={() => setShowEnrollForm(!showEnrollForm)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        onClick={() => setShowAssignForm((v) => !v)}
+                        className={`flex-shrink-0 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                          showAssignForm
+                            ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            : "bg-blue-600 text-white hover:bg-blue-700"
+                        }`}
                       >
-                        {showEnrollForm ? "Cancel" : "Assign Teacher"}
+                        {showAssignForm ? "✕ Cancel" : "+ Assign Teacher"}
                       </button>
                     </div>
                   </div>
 
-                  {/* Enrollment Form */}
-                  {showEnrollForm && (
-                    <form
-                      onSubmit={handleEnrollSubmit}
-                      className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6"
-                    >
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {/* ── Assign Teacher Form ──────────────────────── */}
+                  {showAssignForm && (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                      <h3 className="text-base font-semibold text-gray-900 mb-1">
                         Assign a Teacher
                       </h3>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Paste the teacher's User ID. Find it on the{" "}
-                        <a
-                          href="/admin/users"
-                          className="text-blue-600 hover:text-blue-900 font-medium underline"
-                        >
-                          Users
-                        </a>{" "}
-                        page. Only users with the <strong>teacher</strong> role can be assigned here.
+                      <p className="text-sm text-gray-500 mb-4">
+                        Search for a teacher by name or email and select them from the list.
+                        Only users with the <strong>teacher</strong> role are shown.
                       </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="col-span-1 sm:col-span-1">
-                          <select
-                            value={selectedDept?._id || ""}
-                            onChange={(e) => setSelectedDept(departments.find(d => d._id === e.target.value) || null)}
-                            className="w-full px-3 py-2 border rounded-lg text-sm"
-                          >
-                            <option value="">Select Department</option>
-                            {departments.map(d => (
-                              <option key={d._id} value={d._id}>{d.name}</option>
-                            ))}
-                          </select>
-                        </div>
 
-                        <div className="col-span-1 sm:col-span-1">
-                          <select
-                            value={selectedYear || ""}
-                            onChange={(e) => setSelectedYear(e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg text-sm"
-                          >
-                            <option value="">Select Year</option>
-                            <option value="FY">FY</option>
-                            <option value="SY">SY</option>
-                            <option value="TY">TY</option>
-                          </select>
-                        </div>
+                      {/* Search box */}
+                      <div className="mb-3">
+                        <input
+                          type="text"
+                          placeholder="Search teacher by name or email…"
+                          value={teacherSearch}
+                          onChange={(e) => {
+                            setTeacherSearch(e.target.value);
+                            setSelectedTeacherId(""); // clear selection on new search
+                          }}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
 
-                        <div className="col-span-1 sm:col-span-1">
-                          <input
-                            type="text"
-                            placeholder="Paste full User ID (MongoDB ID)"
-                            value={enrollFormData.userId}
-                            onChange={(e) =>
-                              setEnrollFormData({
-                                ...enrollFormData,
-                                userId: e.target.value,
-                              })
-                            }
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm w-full"
-                          />
-                        </div>
-
-                        <div className="col-span-1 sm:col-span-1">
-                          <div className="px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-600 font-medium">
-                            Role: Teacher
+                      {/* Teacher list */}
+                      <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-52 overflow-y-auto mb-4">
+                        {filteredTeachers.length === 0 ? (
+                          <div className="p-4 text-center text-sm text-gray-500">
+                            {teachers.length === 0
+                              ? "No teacher-role users found in the system."
+                              : "No teachers match your search."}
                           </div>
-                        </div>
+                        ) : (
+                          filteredTeachers.map((t) => {
+                            const alreadyEnrolled = enrolledTeacherIds.has(t._id);
+                            const isSelected = selectedTeacherId === t._id;
+                            return (
+                              <button
+                                key={t._id}
+                                type="button"
+                                disabled={alreadyEnrolled}
+                                onClick={() =>
+                                  setSelectedTeacherId(isSelected ? "" : t._id)
+                                }
+                                className={`w-full text-left px-4 py-3 flex items-center justify-between text-sm transition-colors
+                                  ${alreadyEnrolled
+                                    ? "opacity-40 cursor-not-allowed bg-gray-50"
+                                    : isSelected
+                                    ? "bg-blue-50 border-l-4 border-blue-600"
+                                    : "hover:bg-gray-50"
+                                  }`}
+                              >
+                                <div>
+                                  <span className="font-medium text-gray-900">
+                                    {t.fullName}
+                                  </span>
+                                  <span className="ml-2 text-gray-500 text-xs">
+                                    {t.email}
+                                  </span>
+                                </div>
+                                {alreadyEnrolled && (
+                                  <span className="text-xs text-gray-400 italic">
+                                    Already assigned
+                                  </span>
+                                )}
+                                {isSelected && !alreadyEnrolled && (
+                                  <span className="text-blue-600 text-xs font-semibold">
+                                    ✓ Selected
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
 
-                        <div className="col-span-1 sm:col-span-1 flex gap-2">
-                          <button
-                            type="button"
-                            onClick={handleFetchTeacher}
-                            className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                          >
-                            Fetch Teacher
-                          </button>
-                          <button
-                            type="submit"
-                            disabled={enrolling}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
-                          >
-                            {enrolling ? "Assigning..." : "Assign Teacher"}
-                          </button>
+                      {/* Confirm button */}
+                      <form onSubmit={handleAssignTeacher} className="flex items-center gap-3">
+                        <div className="flex-1 text-sm text-gray-600">
+                          {selectedTeacherId ? (
+                            <>
+                              Assigning:{" "}
+                              <strong>
+                                {teachers.find((t) => t._id === selectedTeacherId)?.fullName}
+                              </strong>
+                            </>
+                          ) : (
+                            <span className="text-gray-400 italic">No teacher selected</span>
+                          )}
                         </div>
-                      </div>
-                      <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
-                        <p className="text-xs text-blue-800">
-                          <span className="font-semibold">ℹ️ Note:</span> Only users with the global <strong>teacher</strong> role can be assigned. User ID is a 24-character MongoDB ID. Example: <code className="bg-blue-100 px-1 rounded">507f1f77bcf86cd799439011</code>
-                        </p>
-                      </div>
-                    </form>
-                  )}
-
-                  {/* Summary Statistics */}
-                  {summary && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                        <p className="text-2xl font-bold text-gray-900">
-                          {summary.total}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">Total</p>
-                      </div>
-                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                        <p className="text-2xl font-bold text-blue-600">
-                          {summary.students}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">Students</p>
-                      </div>
-                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                        <p className="text-2xl font-bold text-green-600">
-                          {summary.teachers}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">Teachers</p>
-                      </div>
-                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                        <p className="text-2xl font-bold text-purple-600">
-                          {summary.managers}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">Managers</p>
-                      </div>
+                        <button
+                          type="submit"
+                          disabled={enrolling || !selectedTeacherId}
+                          className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm disabled:opacity-50"
+                        >
+                          {enrolling ? "Assigning…" : "Confirm Assignment"}
+                        </button>
+                      </form>
                     </div>
                   )}
 
-                  {/* Enrollments List */}
-                  {loading ? (
-                    <div className="flex items-center justify-center py-16">
-                      <div className="text-center">
-                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-                        <p className="mt-3 text-sm text-gray-500">
-                          Loading enrollments...
-                        </p>
-                      </div>
+                  {/* ── Summary Stats ─────────────────────────────── */}
+                  {summary && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      {[
+                        { label: "Total", value: summary.total, color: "text-gray-900" },
+                        { label: "Students", value: summary.students, color: "text-blue-600" },
+                        { label: "Teachers", value: summary.teachers, color: "text-green-600" },
+                        { label: "Managers", value: summary.managers, color: "text-purple-600" },
+                      ].map(({ label, value, color }) => (
+                        <div key={label} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                          <p className={`text-2xl font-bold ${color}`}>{value}</p>
+                          <p className="text-xs text-gray-500 mt-1">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* ── Enrollments Table ─────────────────────────── */}
+                  {enrollLoading ? (
+                    <div className="flex items-center justify-center py-10">
+                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent" />
                     </div>
                   ) : (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                      {/* Desktop Table */}
+                      {/* Desktop table */}
                       <div className="hidden md:block overflow-x-auto">
                         <table className="w-full">
                           <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Name
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Email
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Global Role
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Course Role
-                              </th>
-                              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Action
-                              </th>
+                              {["Name", "Email", "Global Role", "Course Role", "Action"].map(
+                                (col, i) => (
+                                  <th
+                                    key={col}
+                                    className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                                      i === 4 ? "text-right" : "text-left"
+                                    }`}
+                                  >
+                                    {col}
+                                  </th>
+                                )
+                              )}
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
                             {enrollments.length === 0 ? (
                               <tr>
-                                <td colSpan="5" className="px-6 py-8 text-center">
-                                  <p className="text-gray-500">
-                                    No enrollments yet. Enroll your first user!
-                                  </p>
+                                <td colSpan="5" className="px-6 py-10 text-center text-gray-500 text-sm">
+                                  No enrollments yet. Assign a teacher to get started.
                                 </td>
                               </tr>
                             ) : (
-                              enrollments.map((enrollment) => (
-                                <tr
-                                  key={enrollment._id}
-                                  className="hover:bg-gray-50 transition-colors"
-                                >
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-medium text-gray-900">
-                                      {enrollment.user.fullName}
-                                    </div>
+                              enrollments.map((en) => (
+                                <tr key={en._id} className="hover:bg-gray-50 transition-colors">
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {en.user.fullName}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {en.user.email}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm text-gray-500">
-                                      {enrollment.user.email}
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                                      {enrollment.user.role}
+                                    <span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                      {en.user.role}
                                     </span>
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap">
-                                    <span
-                                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                        enrollment.role === "teacher"
-                                          ? "bg-green-100 text-green-800"
-                                          : "bg-blue-100 text-blue-800"
-                                      }`}
-                                    >
-                                      {enrollment.role}
-                                    </span>
+                                    <RoleBadge role={en.role} />
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-right">
                                     <button
                                       onClick={() =>
-                                        handleRemoveUser(
-                                          enrollment.user._id,
-                                          enrollment.user.fullName
-                                        )
+                                        handleRemoveUser(en.user._id, en.user.fullName)
                                       }
                                       className="text-red-600 hover:text-red-900 font-medium text-sm"
                                     >
@@ -529,58 +603,37 @@ const AdminEnrollments = () => {
                         </table>
                       </div>
 
-                      {/* Mobile Card View */}
+                      {/* Mobile card view */}
                       <div className="md:hidden divide-y divide-gray-200">
                         {enrollments.length === 0 ? (
-                          <div className="p-4 text-center">
-                            <p className="text-gray-500">
-                              No enrollments yet. Enroll your first user!
-                            </p>
+                          <div className="p-6 text-center text-sm text-gray-500">
+                            No enrollments yet.
                           </div>
                         ) : (
-                          enrollments.map((enrollment) => (
-                            <div
-                              key={enrollment._id}
-                              className="p-4 hover:bg-gray-50 transition-colors"
-                            >
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex-1">
-                                  <h3 className="text-base font-semibold text-gray-900">
-                                    {enrollment.user.fullName}
-                                  </h3>
-                                  <p className="text-sm text-gray-500 mt-1">
-                                    {enrollment.user.email}
+                          enrollments.map((en) => (
+                            <div key={en._id} className="p-4">
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <p className="text-sm font-semibold text-gray-900">
+                                    {en.user.fullName}
                                   </p>
+                                  <p className="text-xs text-gray-500">{en.user.email}</p>
                                 </div>
-                                <span
-                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                    enrollment.role === "teacher"
-                                      ? "bg-green-100 text-green-800"
-                                      : "bg-blue-100 text-blue-800"
-                                  }`}
+                                <RoleBadge role={en.role} />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-500">
+                                  Global: <strong>{en.user.role}</strong>
+                                </span>
+                                <button
+                                  onClick={() =>
+                                    handleRemoveUser(en.user._id, en.user.fullName)
+                                  }
+                                  className="text-xs text-red-600 font-medium hover:text-red-900 bg-red-50 px-3 py-1 rounded-lg"
                                 >
-                                  {enrollment.role}
-                                </span>
+                                  Remove
+                                </button>
                               </div>
-
-                              <div className="text-xs text-gray-600 mb-3">
-                                Global Role:{" "}
-                                <span className="font-medium">
-                                  {enrollment.user.role}
-                                </span>
-                              </div>
-
-                              <button
-                                onClick={() =>
-                                  handleRemoveUser(
-                                    enrollment.user._id,
-                                    enrollment.user.fullName
-                                  )
-                                }
-                                className="w-full text-sm text-red-600 hover:text-red-900 font-medium py-2 px-4 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                              >
-                                Remove
-                              </button>
                             </div>
                           ))
                         )}
