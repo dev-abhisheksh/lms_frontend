@@ -61,7 +61,8 @@ const AdminEnrollments = () => {
   const [hasFiltered, setHasFiltered] = useState(false);
 
   // UI states
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);           // initial mount only
+  const [courseListLoading, setCourseListLoading] = useState(false); // sidebar filter
   const [enrollLoading, setEnrollLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
@@ -106,9 +107,9 @@ const AdminEnrollments = () => {
 
     const fetchFiltered = async () => {
       try {
-        setLoading(true);
+        setCourseListLoading(true); // ← only the sidebar list, not full page
         setHasFiltered(true);
-        const params = { isPublished: true }; // ← only current published courses
+        const params = { isPublished: true };
         if (selectedDept) params.departmentId = selectedDept._id;
         if (selectedYear) params.year = selectedYear;
         const res = await getAllCourses(params);
@@ -119,7 +120,7 @@ const AdminEnrollments = () => {
         console.error("Filter failed:", err);
         setError("Failed to load courses.");
       } finally {
-        setLoading(false);
+        setCourseListLoading(false);
       }
     };
 
@@ -317,9 +318,10 @@ const AdminEnrollments = () => {
 
                 {/* Course list */}
                 <div className="divide-y divide-gray-200 max-h-[520px] overflow-y-auto">
-                  {loading ? (
+                  {courseListLoading ? (
                     <div className="p-6 text-center">
                       <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent" />
+                      <p className="text-xs text-gray-400 mt-2">Loading courses…</p>
                     </div>
                   ) : !hasFiltered ? (
                     <div className="p-6 text-center space-y-2">
