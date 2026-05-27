@@ -8,7 +8,9 @@ import {
   MdQuiz,
   MdCheckCircle,
   MdHelpOutline,
-  MdPlayArrow,
+  MdClose,
+  MdPublish,
+  MdUnpublished,
 } from "react-icons/md";
 import { getTeacherCourses } from "../../API/course.api";
 import {
@@ -16,236 +18,235 @@ import {
   getTestsByCourse,
   updateTest,
   deleteTest,
-  togglePublishTest
+  togglePublishTest,
 } from "../../API/test.api";
 
-const TestTypeCard = ({ type, title, description, icon: Icon, color }) => {
-  return (
-    <div
-      className={`p-4 rounded-lg border border-gray-200 hover:shadow-md transition-all cursor-pointer group ${color}`}
-    >
-      <div className="flex items-start justify-between mb-2">
-        <div className="p-2 rounded-lg bg-white group-hover:bg-opacity-80">
-          <Icon className="w-5 h-5" />
-        </div>
-      </div>
-      <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-      <p className="text-xs text-gray-600 mt-1">{description}</p>
-    </div>
-  );
+/* ── helpers ─────────────────────────────────────────── */
+const emptyQuestion = (type) => ({
+  questionText: "",
+  type: type === "mixed" ? "mcq" : type,
+  marks: 1,
+  options:
+    type === "essay"
+      ? []
+      : [
+          { text: "", isCorrect: true },
+          { text: "", isCorrect: false },
+          { text: "", isCorrect: false },
+          { text: "", isCorrect: false },
+        ],
+});
+
+const defaultForm = {
+  title: "",
+  description: "",
+  type: "mcq",
+  duration: 60,
+  totalQuestions: 5,
+  totalMarks: 100,
+  passingMarks: 40,
+  isPublished: false,
+  questions: [],
 };
 
+const testTypesMeta = [
+  { id: "mcq", label: "MCQ", color: "bg-blue-100 text-blue-700" },
+  { id: "obt", label: "Objective", color: "bg-purple-100 text-purple-700" },
+  { id: "essay", label: "Essay", color: "bg-green-100 text-green-700" },
+  { id: "mixed", label: "Mixed", color: "bg-orange-100 text-orange-700" },
+];
+
+/* ── component ───────────────────────────────────────── */
 const TeacherTests = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [tests, setTests] = useState([]);
-  const [testType, setTestType] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingTestId, setEditingTestId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    type: "mcq",
-    duration: 60,
-    totalQuestions: 0,
-    totalMarks: 100,
-    passingMarks: 40,
-    isPublished: false,
-    questions: [],
-  });
+  const [formData, setFormData] = useState({ ...defaultForm });
+  const [step, setStep] = useState(1); // 1 = meta, 2 = questions
+  const [saving, setSaving] = useState(false);
 
-  const testTypes = [
-    {
-      id: "mcq",
-      title: "Multiple Choice Questions (MCQ)",
-      description: "Students select one correct answer from multiple options",
-      icon: MdCheckCircle,
-      color: "bg-blue-50",
-    },
-    {
-      id: "obt",
-      title: "Objective Based Test (OBT)",
-      description: "True/False, Multiple select, and other objective questions",
-      icon: MdHelpOutline,
-      color: "bg-purple-50",
-    },
-    {
-      id: "essay",
-      title: "Essay Questions",
-      description: "Short or long answer text-based questions",
-      icon: MdEdit,
-      color: "bg-green-50",
-    },
-    {
-      id: "mixed",
-      title: "Mixed Format",
-      description: "Combination of MCQ, objective, and essay questions",
-      icon: MdQuiz,
-      color: "bg-orange-50",
-    },
-  ];
-
-  // Fetch courses taught by the teacher
+  /* ── load courses ── */
   useEffect(() => {
-    const loadCourses = async () => {
+    (async () => {
       try {
-        const courseList = await getTeacherCourses();
-        setCourses(courseList);
-        if (courseList.length > 0) {
-          setSelectedCourse(courseList[0]._id);
-        }
-      } catch (error) {
-        console.error("Error loading courses:", error);
+        const list = await getTeacherCourses();
+        setCourses(list);
+        if (list.length > 0) setSelectedCourse(list[0]._id);
+      } catch (e) {
+        console.error("Error loading courses:", e);
       }
-    };
-    loadCourses();
+    })();
   }, []);
 
-  // Fetch tests for selected course
+  /* ── load tests when course changes ── */
   useEffect(() => {
     if (!selectedCourse) return;
-
-    const loadTests = async () => {
+    const load = async () => {
       setLoading(true);
       try {
-        const response = await getTestsByCourse(selectedCourse);
-        setTests(response.data.tests || []);
-      } catch (error) {
-        console.error("Error loading tests:", error);
+        const res = await getTestsByCourse(selectedCourse);
+        setTests(res.data.tests || []);
+      } catch (e) {
+        console.error("Error loading tests:", e);
+        setTests([]);
       } finally {
         setLoading(false);
       }
     };
-    loadTests();
+    load();
   }, [selectedCourse]);
 
-  // Handle form input changes
-  const handleInputChange = (e) => {
+  /* ── form field handler ── */
+  const handleField = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setFormData((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
   };
 
-  // Submit test
-  const handleSubmitTest = async (e) => {
-    e.preventDefault();
-    if (!selectedCourse) {
-      alert("Please select a course");
-      return;
-    }
+  /* ── go from step-1 (meta) → step-2 (questions) ── */
+  const goToQuestions = () => {
+    const count = Number(formData.totalQuestions) || 1;
+    const existing = formData.questions || [];
+    let qs = [...existing];
+    // grow
+    while (qs.length < count) qs.push(emptyQuestion(formData.type));
+    // shrink
+    qs = qs.slice(0, count);
+    setFormData((p) => ({ ...p, questions: qs }));
+    setStep(2);
+  };
 
+  /* ── question helpers ── */
+  const updateQuestion = (idx, field, value) => {
+    setFormData((p) => {
+      const qs = [...p.questions];
+      qs[idx] = { ...qs[idx], [field]: value };
+      return { ...p, questions: qs };
+    });
+  };
+
+  const updateOption = (qIdx, oIdx, field, value) => {
+    setFormData((p) => {
+      const qs = [...p.questions];
+      const opts = [...qs[qIdx].options];
+      if (field === "isCorrect") {
+        // only one correct per question for mcq
+        opts.forEach((o, i) => (opts[i] = { ...o, isCorrect: i === oIdx }));
+      } else {
+        opts[oIdx] = { ...opts[oIdx], [field]: value };
+      }
+      qs[qIdx] = { ...qs[qIdx], options: opts };
+      return { ...p, questions: qs };
+    });
+  };
+
+  const addOption = (qIdx) => {
+    setFormData((p) => {
+      const qs = [...p.questions];
+      qs[qIdx] = {
+        ...qs[qIdx],
+        options: [...qs[qIdx].options, { text: "", isCorrect: false }],
+      };
+      return { ...p, questions: qs };
+    });
+  };
+
+  const removeOption = (qIdx, oIdx) => {
+    setFormData((p) => {
+      const qs = [...p.questions];
+      qs[qIdx] = {
+        ...qs[qIdx],
+        options: qs[qIdx].options.filter((_, i) => i !== oIdx),
+      };
+      return { ...p, questions: qs };
+    });
+  };
+
+  /* ── submit ── */
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedCourse) return alert("Select a course first");
+    setSaving(true);
     try {
       if (editingTestId) {
         await updateTest(editingTestId, formData);
-        alert(`${formData.type.toUpperCase()} test updated successfully!`);
+        alert("Test updated!");
       } else {
         await createTest(selectedCourse, formData);
-        alert(`${formData.type.toUpperCase()} test created successfully!`);
+        alert("Test created!");
       }
-
-      setFormData({
-        title: "",
-        description: "",
-        type: "mcq",
-        duration: 60,
-        totalQuestions: 0,
-        totalMarks: 100,
-        passingMarks: 40,
-        isPublished: false,
-        questions: [],
-      });
-      setTestType(null);
-      setShowForm(false);
-      setEditingTestId(null);
-
-      // Reload tests
-      const response = await getTestsByCourse(selectedCourse);
-      setTests(response.data.tests || []);
-    } catch (error) {
-      console.error("Error saving test:", error);
-      alert("Failed to save test");
+      resetForm();
+      const res = await getTestsByCourse(selectedCourse);
+      setTests(res.data.tests || []);
+    } catch (err) {
+      console.error("Save error:", err);
+      alert("Failed to save test: " + (err.response?.data?.message || err.message));
+    } finally {
+      setSaving(false);
     }
   };
 
-  // Delete test
-  const handleDeleteTest = async (testId) => {
-    if (window.confirm("Are you sure you want to delete this test?")) {
-      try {
-        await deleteTest(testId);
-        setTests((prev) => prev.filter((t) => t._id !== testId));
-        alert("Test deleted successfully!");
-      } catch (error) {
-        console.error("Error deleting test:", error);
-        alert("Failed to delete test");
-      }
-    }
+  const resetForm = () => {
+    setFormData({ ...defaultForm });
+    setShowForm(false);
+    setEditingTestId(null);
+    setStep(1);
   };
 
-  const handleTogglePublish = async (testId) => {
-    try {
-      await togglePublishTest(testId);
-      const response = await getTestsByCourse(selectedCourse);
-      setTests(response.data.tests || []);
-    } catch (error) {
-      console.error("Error toggling test publish status:", error);
-    }
-  };
-
-  const handleEditTest = (test) => {
+  /* ── edit ── */
+  const handleEdit = (test) => {
     setEditingTestId(test._id);
-    const typeObj = testTypes.find((t) => t.id === test.type);
-    setTestType(typeObj);
     setFormData({
       title: test.title || "",
       description: test.description || "",
       type: test.type || "mcq",
       duration: test.duration || 60,
-      totalQuestions: test.totalQuestions || 0,
+      totalQuestions: test.totalQuestions || 5,
       totalMarks: test.totalMarks || 100,
       passingMarks: test.passingMarks || 40,
       isPublished: test.isPublished || false,
       questions: test.questions || [],
     });
+    setStep(1);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Start creating test of specific type
-  const startCreatingTest = (type) => {
-    setTestType(type);
-    setFormData((prev) => ({
-      ...prev,
-      type: type.id,
-    }));
-    setShowForm(true);
+  /* ── delete ── */
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this test?")) return;
+    try {
+      await deleteTest(id);
+      setTests((p) => p.filter((t) => t._id !== id));
+    } catch (e) {
+      alert("Delete failed");
+    }
   };
 
-  const getTestTypeLabel = (type) => {
-    const t = testTypes.find((tt) => tt.id === type);
-    return t ? t.title : type.toUpperCase();
+  /* ── toggle publish ── */
+  const handleToggle = async (id) => {
+    try {
+      await togglePublishTest(id);
+      const res = await getTestsByCourse(selectedCourse);
+      setTests(res.data.tests || []);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const getTestTypeIcon = (type) => {
-    const t = testTypes.find((tt) => tt.id === type);
-    if (!t) return MdQuiz;
-    return t.icon;
-  };
+  const typeMeta = (t) => testTypesMeta.find((m) => m.id === t) || testTypesMeta[0];
 
+  /* ════════════════════ RENDER ════════════════════ */
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-
-        {/* Header */}
+      <div className="max-w-5xl mx-auto space-y-6">
+        {/* ── Header ── */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/teacher")}
-              className="p-2 hover:bg-gray-200 rounded-lg transition"
-            >
+            <button onClick={() => navigate("/teacher")} className="p-2 hover:bg-gray-200 rounded-lg transition">
               <MdArrowBack className="w-5 h-5 text-gray-600" />
             </button>
             <div>
@@ -255,313 +256,285 @@ const TeacherTests = () => {
           </div>
           <button
             onClick={() => {
-              if (showForm) {
-                setShowForm(false);
-                setTestType(null);
-                setEditingTestId(null);
-                setFormData({
-                  title: "",
-                  description: "",
-                  type: "mcq",
-                  duration: 60,
-                  totalQuestions: 0,
-                  totalMarks: 100,
-                  passingMarks: 40,
-                  isPublished: false,
-                  questions: [],
-                });
-              } else {
-                setShowForm(true);
-              }
+              if (showForm) resetForm();
+              else { setShowForm(true); setStep(1); }
             }}
             className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
           >
-            <MdAdd className="w-5 h-5" />
-            {showForm ? "Cancel" : "Create Test"}
+            {showForm ? <MdClose className="w-5 h-5" /> : <MdAdd className="w-5 h-5" />}
+            {showForm ? "Cancel" : "New Test"}
           </button>
         </div>
 
-        {/* Course Selector */}
+        {/* ── Course Selector ── */}
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Course
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Select Course</label>
           <select
             value={selectedCourse || ""}
             onChange={(e) => setSelectedCourse(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
           >
             <option value="">-- Select a course --</option>
-            {courses.map((course) => (
-              <option key={course._id} value={course._id}>
-                {course.title} ({course.courseCode})
+            {courses.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.title} ({c.courseCode})
               </option>
             ))}
           </select>
         </div>
 
-        {/* Test Type Selection */}
-        {showForm && !testType && selectedCourse && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Select Test Type
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {testTypes.map((type) => (
-                <button
-                  key={type.id}
-                  onClick={() => startCreatingTest(type)}
-                  className="text-left hover:shadow-lg transition-all"
-                >
-                  <TestTypeCard
-                    type={type.id}
-                    title={type.title}
-                    description={type.description}
-                    icon={type.icon}
-                    color={type.color}
-                  />
-                </button>
-              ))}
+        {/* ═══════════ FORM ═══════════ */}
+        {showForm && selectedCourse && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            {/* stepper */}
+            <div className="flex border-b border-gray-200">
+              <button
+                onClick={() => setStep(1)}
+                className={`flex-1 py-3 text-sm font-semibold transition ${
+                  step === 1 ? "bg-orange-50 text-orange-700 border-b-2 border-orange-600" : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                1. Test Details
+              </button>
+              <button
+                onClick={() => formData.title && goToQuestions()}
+                className={`flex-1 py-3 text-sm font-semibold transition ${
+                  step === 2 ? "bg-orange-50 text-orange-700 border-b-2 border-orange-600" : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                2. Questions ({formData.questions.length}/{formData.totalQuestions || 0})
+              </button>
             </div>
-          </div>
-        )}
 
-        {/* Test Form */}
-        {showForm && testType && selectedCourse && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              {editingTestId ? `Edit ${testType.title}` : `Create ${testType.title}`}
-            </h2>
-            <form onSubmit={handleSubmitTest} className="space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+              {/* ── STEP 1: Meta ── */}
+              {step === 1 && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Test Title *</label>
+                    <input type="text" name="title" value={formData.title} onChange={handleField} required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                      placeholder="e.g. Python Basics Quiz" />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Test Title *
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Enter test title"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea name="description" value={formData.description} onChange={handleField} rows="2"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                      placeholder="Describe the test objectives" />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows="3"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Describe the test and its objectives"
-                />
-              </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Type *</label>
+                      <select name="type" value={formData.type} onChange={handleField}
+                        className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                        <option value="mcq">MCQ</option>
+                        <option value="obt">Objective</option>
+                        <option value="essay">Essay</option>
+                        <option value="mixed">Mixed</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Duration (min)</label>
+                      <input type="number" name="duration" value={formData.duration} onChange={handleField} min="1"
+                        className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Total Marks</label>
+                      <input type="number" name="totalMarks" value={formData.totalMarks} onChange={handleField} min="1"
+                        className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Pass Marks</label>
+                      <input type="number" name="passingMarks" value={formData.passingMarks} onChange={handleField} min="0"
+                        className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Duration (minutes) *
-                  </label>
-                  <input
-                    type="number"
-                    name="duration"
-                    value={formData.duration}
-                    onChange={handleInputChange}
-                    min="1"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Total Questions *
-                  </label>
-                  <input
-                    type="number"
-                    name="totalQuestions"
-                    value={formData.totalQuestions}
-                    onChange={handleInputChange}
-                    min="1"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-              </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Number of Questions *</label>
+                    <input type="number" name="totalQuestions" value={formData.totalQuestions} onChange={handleField} min="1" max="100"
+                      className="w-full sm:w-40 px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Total Marks *
-                  </label>
-                  <input
-                    type="number"
-                    name="totalMarks"
-                    value={formData.totalMarks}
-                    onChange={handleInputChange}
-                    min="1"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Passing Marks *
-                  </label>
-                  <input
-                    type="number"
-                    name="passingMarks"
-                    value={formData.passingMarks}
-                    onChange={handleInputChange}
-                    min="0"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 mt-6">
-                    <input
-                      type="checkbox"
-                      name="isPublished"
-                      checked={formData.isPublished}
-                      onChange={handleInputChange}
-                      className="w-4 h-4 text-orange-600 rounded"
-                    />
-                    <span className="text-sm text-gray-700">Publish now</span>
-                  </label>
-                </div>
-              </div>
+                  <div className="flex justify-end gap-3">
+                    <button type="button" onClick={resetForm}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Cancel</button>
+                    <button type="button" onClick={goToQuestions}
+                      className="px-5 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium">
+                      Next → Add Questions
+                    </button>
+                  </div>
+                </>
+              )}
 
-              <div className="flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowForm(false);
-                    setTestType(null);
-                  }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
-                >
-                  {editingTestId ? "Update Test" : "Create Test"}
-                </button>
-              </div>
+              {/* ── STEP 2: Questions ── */}
+              {step === 2 && (
+                <>
+                  <p className="text-sm text-gray-500">
+                    Fill in <span className="font-semibold text-gray-800">{formData.questions.length}</span> question(s)
+                    for this <span className="font-semibold">{formData.type.toUpperCase()}</span> test.
+                  </p>
+
+                  <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-1">
+                    {formData.questions.map((q, qi) => (
+                      <div key={qi} className="border border-gray-200 rounded-xl p-4 bg-gray-50/50 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
+                            Q{qi + 1}
+                          </span>
+                          {formData.type === "mixed" && (
+                            <select value={q.type}
+                              onChange={(e) => {
+                                updateQuestion(qi, "type", e.target.value);
+                                if (e.target.value === "essay") {
+                                  updateQuestion(qi, "options", []);
+                                } else if (q.options.length === 0) {
+                                  updateQuestion(qi, "options", [
+                                    { text: "", isCorrect: true },
+                                    { text: "", isCorrect: false },
+                                    { text: "", isCorrect: false },
+                                    { text: "", isCorrect: false },
+                                  ]);
+                                }
+                              }}
+                              className="text-xs border border-gray-300 rounded-lg px-2 py-1 focus:ring-1 focus:ring-orange-500 focus:outline-none">
+                              <option value="mcq">MCQ</option>
+                              <option value="obt">Objective</option>
+                              <option value="essay">Essay</option>
+                            </select>
+                          )}
+                          <input type="number" value={q.marks} min="1"
+                            onChange={(e) => updateQuestion(qi, "marks", Number(e.target.value))}
+                            className="w-20 text-xs border border-gray-300 rounded-lg px-2 py-1 text-right focus:ring-1 focus:ring-orange-500 focus:outline-none"
+                            title="Marks" />
+                        </div>
+
+                        {/* question text */}
+                        <textarea value={q.questionText}
+                          onChange={(e) => updateQuestion(qi, "questionText", e.target.value)}
+                          rows="2" placeholder={`Enter question ${qi + 1}...`}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+
+                        {/* options (MCQ / OBT) */}
+                        {(q.type === "mcq" || q.type === "obt") && (
+                          <div className="space-y-2 pl-2">
+                            {q.options.map((opt, oi) => (
+                              <div key={oi} className="flex items-center gap-2">
+                                <input type="radio" name={`correct-${qi}`}
+                                  checked={opt.isCorrect}
+                                  onChange={() => updateOption(qi, oi, "isCorrect", true)}
+                                  className="w-4 h-4 text-green-600 accent-green-600" title="Mark as correct" />
+                                <input type="text" value={opt.text}
+                                  onChange={(e) => updateOption(qi, oi, "text", e.target.value)}
+                                  placeholder={`Option ${String.fromCharCode(65 + oi)}`}
+                                  className={`flex-1 px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:outline-none ${
+                                    opt.isCorrect
+                                      ? "border-green-400 bg-green-50/50 focus:ring-green-400"
+                                      : "border-gray-300 focus:ring-orange-500"
+                                  }`} />
+                                {q.options.length > 2 && (
+                                  <button type="button" onClick={() => removeOption(qi, oi)}
+                                    className="p-1 text-red-400 hover:text-red-600 transition"><MdClose className="w-4 h-4" /></button>
+                                )}
+                              </div>
+                            ))}
+                            {q.options.length < 6 && (
+                              <button type="button" onClick={() => addOption(qi)}
+                                className="text-xs text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1 mt-1">
+                                <MdAdd className="w-3.5 h-3.5" /> Add Option
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {q.type === "essay" && (
+                          <p className="text-xs text-gray-400 italic pl-2">Students will type their answer freely.</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-between pt-4 border-t border-gray-200">
+                    <button type="button" onClick={() => setStep(1)}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">
+                      ← Back to Details
+                    </button>
+                    <button type="submit" disabled={saving}
+                      className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium disabled:opacity-50">
+                      {saving ? "Saving..." : editingTestId ? "Update Test" : "Create Test"}
+                    </button>
+                  </div>
+                </>
+              )}
             </form>
           </div>
         )}
 
-        {/* Tests List */}
+        {/* ═══════════ TESTS LIST ═══════════ */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
             <MdQuiz className="w-5 h-5 text-gray-600" />
             <h2 className="text-base font-semibold text-gray-900">
               {courses.find((c) => c._id === selectedCourse)?.title || "Tests"}
             </h2>
+            <span className="ml-auto text-xs text-gray-500">{tests.length} test(s)</span>
           </div>
 
           {loading ? (
             <div className="p-6 space-y-3">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-20 bg-gray-100 rounded animate-pulse" />
+                <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />
               ))}
             </div>
           ) : tests.length === 0 ? (
-            <div className="p-8 text-center">
-              <MdQuiz className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-sm text-gray-500">No tests yet. Create one to get started!</p>
+            <div className="p-10 text-center">
+              <MdQuiz className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">No tests yet. Click "New Test" to create one!</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-gray-100">
               {tests.map((test) => {
-                const TestIcon = getTestTypeIcon(test.type);
+                const meta = typeMeta(test.type);
                 return (
-                  <div key={test._id} className="p-4 hover:bg-gray-50 transition">
+                  <div key={test._id} className="p-4 hover:bg-gray-50/80 transition group">
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1">
-                        <div className="p-2 bg-orange-100 rounded-lg shrink-0 mt-0.5">
-                          <TestIcon className="w-4 h-4 text-orange-600" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h3 className="text-sm font-semibold text-gray-900">{test.title}</h3>
+                          <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${meta.color}`}>
+                            {meta.label}
+                          </span>
+                          <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${
+                            test.isPublished ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                          }`}>
+                            {test.isPublished ? "Published" : "Draft"}
+                          </span>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-sm font-semibold text-gray-900">
-                              {test.title}
-                            </h3>
-                            <span
-                              className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                                test.isPublished
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-gray-100 text-gray-700"
-                              }`}
-                            >
-                              {test.isPublished ? "Published" : "Draft"}
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-500 mb-2">
-                            {test.description}
-                          </p>
-                          <div className="flex flex-wrap gap-3 text-xs text-gray-600">
-                            <span>{getTestTypeLabel(test.type)}</span>
-                            <span>•</span>
-                            <span>{test.duration} mins</span>
-                            <span>•</span>
-                            <span>{test.totalQuestions} Questions</span>
-                            <span>•</span>
-                            <span>{test.totalMarks} Marks</span>
-                            <span>•</span>
-                            <span>Pass: {test.passingMarks}</span>
-                          </div>
+                        {test.description && (
+                          <p className="text-xs text-gray-500 mb-1.5 line-clamp-1">{test.description}</p>
+                        )}
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                          <span>{test.duration} min</span>
+                          <span>{test.totalQuestions || test.questions?.length || 0} Qs</span>
+                          <span>{test.totalMarks} marks</span>
+                          <span>Pass: {test.passingMarks}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() =>
-                            navigate(`/teacher/tests/${test._id}/add-questions`)
-                          }
-                          className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition"
-                          title="Add questions"
-                        >
-                          <MdAdd className="w-4 h-4" />
+
+                      <div className="flex items-center gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition">
+                        <button onClick={() => handleToggle(test._id)}
+                          className={`p-2 rounded-lg transition ${test.isPublished ? "hover:bg-yellow-50 text-yellow-600" : "hover:bg-green-50 text-green-600"}`}
+                          title={test.isPublished ? "Unpublish" : "Publish"}>
+                          {test.isPublished ? <MdUnpublished className="w-4 h-4" /> : <MdPublish className="w-4 h-4" />}
                         </button>
-                        <button
-                          onClick={() => handleTogglePublish(test._id)}
-                          className="p-2 hover:bg-green-50 rounded-lg text-green-600 transition"
-                          title="Toggle Publish"
-                        >
-                          <MdCheckCircle className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEditTest(test)}
-                          className="p-2 hover:bg-yellow-50 rounded-lg text-yellow-600 transition"
-                          title="Edit"
-                        >
+                        <button onClick={() => handleEdit(test)}
+                          className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition" title="Edit">
                           <MdEdit className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() =>
-                            navigate(
-                              `/teacher/tests/${test._id}/preview`,
-                              { state: { test } }
-                            )
-                          }
-                          className="p-2 hover:bg-purple-50 rounded-lg text-purple-600 transition"
-                          title="Preview"
-                        >
-                          <MdPlayArrow className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTest(test._id)}
-                          className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition"
-                          title="Delete"
-                        >
+                        <button onClick={() => handleDelete(test._id)}
+                          className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition" title="Delete">
                           <MdDelete className="w-4 h-4" />
                         </button>
                       </div>
@@ -572,7 +545,6 @@ const TeacherTests = () => {
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
