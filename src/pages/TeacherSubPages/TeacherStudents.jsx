@@ -8,7 +8,7 @@ import {
   MdPerson,
   MdBadge,
 } from "react-icons/md";
-import { myCourses } from "../../API/course.api";
+import { getTeacherCourses } from "../../API/course.api";
 import { getCourseEnrollmentSummary } from "../../API/enrollment.api";
 
 const TeacherStudents = () => {
@@ -29,8 +29,7 @@ const TeacherStudents = () => {
     const loadCourses = async () => {
       setLoadingCourses(true);
       try {
-        const response = await myCourses();
-        const courseList = response.data.courses || [];
+        const courseList = await getTeacherCourses();
         setCourses(courseList);
         if (courseList.length > 0 && !selectedCourse) {
           setSelectedCourse(courseList[0]._id);
@@ -111,7 +110,7 @@ const TeacherStudents = () => {
                   <option value="">-- Choose a Course --</option>
                   {courses.map((course) => (
                     <option key={course._id} value={course._id}>
-                      {course.name} ({course.code})
+                      {course.title} ({course.courseCode})
                     </option>
                   ))}
                 </>

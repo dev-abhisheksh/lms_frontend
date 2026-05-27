@@ -9,7 +9,7 @@ import {
   MdPublish,
   MdSchedule,
 } from "react-icons/md";
-import { myCourses } from "../../API/course.api";
+import { getTeacherCourses } from "../../API/course.api";
 
 const TeacherNotes = () => {
   const navigate = useNavigate();
@@ -29,10 +29,10 @@ const TeacherNotes = () => {
   useEffect(() => {
     const loadCourses = async () => {
       try {
-        const response = await myCourses();
-        setCourses(response.data.courses || []);
-        if (response.data.courses?.length > 0) {
-          setSelectedCourse(response.data.courses[0]._id);
+        const courseList = await getTeacherCourses();
+        setCourses(courseList);
+        if (courseList.length > 0) {
+          setSelectedCourse(courseList[0]._id);
         }
       } catch (error) {
         console.error("Error loading courses:", error);
@@ -215,7 +215,7 @@ const TeacherNotes = () => {
             <option value="">-- Select a course --</option>
             {courses.map((course) => (
               <option key={course._id} value={course._id}>
-                {course.name} ({course.code})
+                {course.title} ({course.courseCode})
               </option>
             ))}
           </select>
@@ -298,7 +298,7 @@ const TeacherNotes = () => {
           <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
             <MdDescription className="w-5 h-5 text-gray-600" />
             <h2 className="text-base font-semibold text-gray-900">
-              {courses.find((c) => c._id === selectedCourse)?.name || "Notes"}
+              {courses.find((c) => c._id === selectedCourse)?.title || "Notes"}
             </h2>
           </div>
 

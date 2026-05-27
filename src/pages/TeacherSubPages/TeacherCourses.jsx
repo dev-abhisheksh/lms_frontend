@@ -8,7 +8,7 @@ import {
   MdOutlineClass,
   MdBook,
 } from "react-icons/md";
-import { myCourses } from "../../API/course.api";
+import { getTeacherCourses } from "../../API/course.api";
 
 const TeacherCourses = () => {
   const navigate = useNavigate();
@@ -19,8 +19,8 @@ const TeacherCourses = () => {
     const loadCourses = async () => {
       setLoading(true);
       try {
-        const response = await myCourses();
-        setCourses(response.data.courses || []);
+        const courses = await getTeacherCourses();
+        setCourses(courses);
       } catch (error) {
         console.error("Error loading courses:", error);
       } finally {
@@ -107,7 +107,7 @@ const TeacherCourses = () => {
                   <div>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <span className="px-2.5 py-0.5 text-xs font-semibold text-purple-700 bg-purple-100 rounded-full">
-                        {course.code || "CRSE"}
+                        {course.courseCode || "CRSE"}
                       </span>
                       <span
                         className={`px-2 py-0.5 text-xs font-medium rounded-full ${

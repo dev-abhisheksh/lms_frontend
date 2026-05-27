@@ -10,8 +10,8 @@ const TeacherUniversal = () => {
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden py-4 lg:pt-5 lg:gap-5 md:gap-4">
-        {/* Desktop Sidebar wrapper */}
-        <aside className="w-fit h-full bg-white rounded-lg overflow-hidden shrink-0">
+        {/* Desktop Sidebar — hidden on mobile, TeacherBottombar handles mobile nav */}
+        <aside className="hidden md:block w-fit h-full bg-white rounded-lg overflow-hidden shrink-0">
           <TeacherSideBar />
         </aside>
 

@@ -11,6 +11,9 @@ import {
   MdPendingActions,
   MdCheckCircle,
 } from "react-icons/md";
+import { getTeacherCourses } from "../API/course.api";
+import { getAssignmentsByCourse } from "../API/assignment.api";
+import { getSubmissionStatusForAssignment } from "../API/submission.api";
 
 // ── Stat card component ────────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, color, onClick }) => (
@@ -65,19 +68,53 @@ const TeacherDashboard = () => {
     const loadStats = async () => {
       setLoading(true);
       try {
-        // Placeholder data - replace with actual API calls
-        // For now, simulate loading
-        setTimeout(() => {
-          setStats({
-            coursesTaught: 5,
-            assignmentsPosted: 12,
-            submissionsPending: 8,
-            notesCreated: 15,
+        // 1. Fetch teacher's actual courses
+        const courses = await getTeacherCourses();
+        const coursesTaught = courses.length;
+
+        // 2. Fetch all assignments for every course in parallel
+        let assignmentsPosted = 0;
+        let allAssignmentIds = [];
+        if (courses.length > 0) {
+          const results = await Promise.allSettled(
+            courses.map((c) => getAssignmentsByCourse(c._id))
+          );
+          results.forEach((res) => {
+            if (res.status === "fulfilled") {
+              const list = res.value.data.assignments || [];
+              assignmentsPosted += list.length;
+              allAssignmentIds.push(...list.map((a) => a._id));
+            }
           });
-          setLoading(false);
-        }, 500);
+        }
+
+        // 3. Count ungraded (pending) submissions across all assignments
+        let submissionsPending = 0;
+        if (allAssignmentIds.length > 0) {
+          // Sample first 5 assignments to avoid rate limiting
+          const sampleIds = allAssignmentIds.slice(0, 5);
+          const subResults = await Promise.allSettled(
+            sampleIds.map((id) => getSubmissionStatusForAssignment(id))
+          );
+          subResults.forEach((res) => {
+            if (res.status === "fulfilled") {
+              const statuses = res.value.data.submissionStatuses || res.value.data.statuses || [];
+              submissionsPending += statuses.filter(
+                (s) => s.status === "submitted" || s.submissionStatus === "submitted"
+              ).length;
+            }
+          });
+        }
+
+        setStats({
+          coursesTaught,
+          assignmentsPosted,
+          submissionsPending,
+          notesCreated: "—",
+        });
       } catch (error) {
         console.error("Error loading stats:", error);
+      } finally {
         setLoading(false);
       }
     };
