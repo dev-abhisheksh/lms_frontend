@@ -18,15 +18,15 @@ import {
 const StatCard = ({ icon: Icon, label, value, sub, color, onClick }) => (
   <button
     onClick={onClick}
-    className={`bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-left hover:shadow-md transition-all group w-full`}
+    className={`bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-left hover:shadow-md transition-all group w-full`}
   >
     <div className="flex items-start justify-between mb-3">
-      <div className={`p-2.5 rounded-lg ${color}`}>
-        <Icon className="w-5 h-5" />
+      <div className={`p-2 rounded-lg ${color}`}>
+        <Icon className="w-4 h-4" />
       </div>
-      <MdArrowForward className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition mt-1" />
+      <MdArrowForward className="w-3.5 h-3.5 text-gray-300 group-hover:text-gray-500 transition mt-1" />
     </div>
-    <p className="text-3xl font-bold text-gray-900">{value ?? "—"}</p>
+    <p className="text-2xl font-bold text-gray-900">{value ?? "—"}</p>
     <p className="text-sm font-medium text-gray-700 mt-0.5">{label}</p>
     {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
   </button>
@@ -118,11 +118,11 @@ const AdminDashboard = () => {
 
         {/* ── Welcome header ─────────────────────────────────────────────── */}
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-indigo-100 rounded-xl">
-            <MdOutlineAdminPanelSettings className="w-8 h-8 text-indigo-600" />
+          <div className="p-2.5 bg-indigo-100 rounded-xl">
+            <MdOutlineAdminPanelSettings className="w-6 h-6 text-indigo-600" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               Welcome back, {adminName}
             </h1>
             <p className="text-sm text-gray-500 mt-0.5">
