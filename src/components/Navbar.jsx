@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { IoIosArrowDown, IoMdNotificationsOutline, IoIosSearch } from "react-icons/io";
+import { MdSchool } from "react-icons/md";
 import { getCurrentUser, logoutUser } from '../API/auth.api';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,6 +8,7 @@ const Navbar = () => {
   const [toggleProfileMenu, setToggleProfileMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false)
   const [userData, setUserData] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate()
 
   const menuRef = useRef(null);
@@ -27,6 +29,8 @@ const Navbar = () => {
       try {
         const res = await getCurrentUser();
         setUserData(res.data.user)
+        const role = localStorage.getItem("role");
+        setUserRole(role);
         console.log(res.data.user)
       } catch (error) {
         console.error(error)
@@ -126,6 +130,23 @@ const Navbar = () => {
               </div>
 
               <hr className="my-2" />
+
+              {/* Teacher Dashboard Link */}
+              {userRole === "teacher" && (
+                <>
+                  <button 
+                    onClick={() => {
+                      navigate("/teacher");
+                      setToggleProfileMenu(false);
+                    }} 
+                    className="w-full text-left text-sm text-blue-600 hover:bg-blue-50 px-2 py-2 rounded-md flex items-center gap-2"
+                  >
+                    <MdSchool size={16} />
+                    Teacher Dashboard
+                  </button>
+                  <hr className="my-2" />
+                </>
+              )}
 
               <button onClick={logoutFeature} className="w-full text-left text-sm text-red-600 hover:bg-red-50 px-2 py-2 rounded-md">
                 Logout

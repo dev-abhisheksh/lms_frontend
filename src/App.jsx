@@ -19,6 +19,11 @@ import { AdminUsersManagement } from "./pages/AdminUsersManagement";
 import AdminBatches from "./pages/AdminBatches";
 import AdminAddUser from "./pages/AdminAddUser";
 import AdminUniversal from "./components/admin/AdminUniversal";
+import TeacherDashboard from "./pages/TeacherDashboard";
+import TeacherAssignments from "./pages/TeacherSubPages/TeacherAssignments";
+import TeacherResources from "./pages/TeacherSubPages/TeacherResources";
+import TeacherNotes from "./pages/TeacherSubPages/TeacherNotes";
+import TeacherTests from "./pages/TeacherSubPages/TeacherTests";
 
 
 const App = () => {
@@ -46,6 +51,11 @@ const App = () => {
               <Route path="/ai" element={<Ai />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/module/:moduleID" element={<Modules />} />
+              <Route path="/teacher" element={<TeacherDashboard />} />
+              <Route path="/teacher/assignments" element={<TeacherAssignments />} />
+              <Route path="/teacher/resources" element={<TeacherResources />} />
+              <Route path="/teacher/notes" element={<TeacherNotes />} />
+              <Route path="/teacher/tests" element={<TeacherTests />} />
             </Route>
           </Route>
 
