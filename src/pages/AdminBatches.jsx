@@ -327,8 +327,8 @@ const AdminBatches = () => {
 
       {/* ══ PROMOTE MODAL ═══════════════════════════════════════════════════ */}
       {promoteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 z-60 relative">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">Confirm Year Promotion</h3>
             <div className="mb-6 p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-600 mb-4">
@@ -357,8 +357,8 @@ const AdminBatches = () => {
 
       {/* ══ ASSIGN COURSES MODAL ════════════════════════════════════════════ */}
       {assignModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-lg flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-lg flex flex-col max-h-[90vh] z-60 relative">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div>
                 <h3 className="text-xl font-semibold text-gray-900">Assign Courses</h3>
