@@ -20,8 +20,12 @@ import { AdminUsersManagement } from "./pages/AdminUsersManagement";
 import AdminBatches from "./pages/AdminBatches";
 import AdminAddUser from "./pages/AdminAddUser";
 import AdminUniversal from "./components/admin/AdminUniversal";
+import TeacherUniversal from "./components/teacher/TeacherUniversal";
 import TeacherDashboard from "./pages/TeacherDashboard";
+import TeacherCourses from "./pages/TeacherSubPages/TeacherCourses";
 import TeacherAssignments from "./pages/TeacherSubPages/TeacherAssignments";
+import TeacherSubmissions from "./pages/TeacherSubPages/TeacherSubmissions";
+import TeacherStudents from "./pages/TeacherSubPages/TeacherStudents";
 import TeacherResources from "./pages/TeacherSubPages/TeacherResources";
 import TeacherNotes from "./pages/TeacherSubPages/TeacherNotes";
 import TeacherTests from "./pages/TeacherSubPages/TeacherTests";
@@ -46,6 +50,18 @@ const App = () => {
               <Route path="/admin/add-user" element={<AdminAddUser />} />
             </Route>
 
+            <Route element={<TeacherUniversal />}>
+              <Route path="/teacher" element={<TeacherDashboard />} />
+              <Route path="/teacher/courses" element={<TeacherCourses />} />
+              <Route path="/teacher/assignments" element={<TeacherAssignments />} />
+              <Route path="/teacher/assignments/:assignmentId/submissions" element={<TeacherSubmissions />} />
+              <Route path="/teacher/submissions" element={<TeacherSubmissions />} />
+              <Route path="/teacher/students" element={<TeacherStudents />} />
+              <Route path="/teacher/resources" element={<TeacherResources />} />
+              <Route path="/teacher/notes" element={<TeacherNotes />} />
+              <Route path="/teacher/tests" element={<TeacherTests />} />
+            </Route>
+
             <Route element={<Universal />}>
               <Route path="/" element={<Courses />} />
               <Route path="/course/:courseID" element={<CourseSingle />} />
@@ -53,11 +69,6 @@ const App = () => {
               <Route path="/ai" element={<Ai />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/module/:moduleID" element={<Modules />} />
-              <Route path="/teacher" element={<TeacherDashboard />} />
-              <Route path="/teacher/assignments" element={<TeacherAssignments />} />
-              <Route path="/teacher/resources" element={<TeacherResources />} />
-              <Route path="/teacher/notes" element={<TeacherNotes />} />
-              <Route path="/teacher/tests" element={<TeacherTests />} />
             </Route>
           </Route>
 

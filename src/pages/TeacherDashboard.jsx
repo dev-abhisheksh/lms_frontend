@@ -118,24 +118,28 @@ const TeacherDashboard = () => {
               label="Courses Taught" 
               value={stats.coursesTaught} 
               color="bg-blue-100 text-blue-600"
+              onClick={() => navigate("/teacher/courses")}
             />
             <StatCard 
               icon={MdAssignment} 
               label="Assignments Posted" 
               value={stats.assignmentsPosted} 
               color="bg-purple-100 text-purple-600"
+              onClick={() => navigate("/teacher/assignments")}
             />
             <StatCard 
               icon={MdPendingActions} 
               label="Submissions Pending" 
               value={stats.submissionsPending} 
               color="bg-orange-100 text-orange-600"
+              onClick={() => navigate("/teacher/submissions")}
             />
             <StatCard 
               icon={MdNotes} 
               label="Notes Created" 
               value={stats.notesCreated} 
               color="bg-green-100 text-green-600"
+              onClick={() => navigate("/teacher/notes")}
             />
           </div>
         )}
