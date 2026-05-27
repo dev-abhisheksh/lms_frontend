@@ -35,6 +35,8 @@ const AdminBatches = () => {
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
   const [enrollResult, setEnrollResult] = useState(null);
+  const [assignDept, setAssignDept] = useState(null);
+  const [assignYear, setAssignYear] = useState(null);
 
   // ── Load data ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -86,16 +88,23 @@ const AdminBatches = () => {
     setAssignModal(batch);
     setSelectedCourses([]);
     setEnrollResult(null);
+    // default selectors: department and year from the batch
+    setAssignDept(batch.department);
+    setAssignYear(batch.year);
+    fetchCourses(batch.department._id, batch.year);
+  };
+
+  const fetchCourses = async (departmentId, year) => {
     setLoadingCourses(true);
     try {
-      const res = await getCoursesByDeptAndYear(batch.department._id, batch.year);
+      const res = await getCoursesByDeptAndYear(departmentId, year);
       setAvailCourses(res.data?.courses || []);
     } catch {
       setAvailCourses([]);
     } finally {
       setLoadingCourses(false);
     }
-  };
+  }
 
   const toggleCourse = (id) =>
     setSelectedCourses(prev =>
@@ -368,6 +377,40 @@ const AdminBatches = () => {
                   </span>
                   &nbsp;·&nbsp;{assignModal.studentCount} students
                 </p>
+                <div className="mt-3 flex items-center gap-3">
+                  <div>
+                    <label className="text-xs text-gray-500">Select Department</label>
+                    <select
+                      value={assignDept?._id || ""}
+                      onChange={(e) => {
+                        const dept = departments.find(d => d._id === e.target.value);
+                        setAssignDept(dept || null);
+                        if (dept && assignYear) fetchCourses(dept._id, assignYear);
+                      }}
+                      className="ml-2 px-2 py-1 border rounded-md text-sm"
+                    >
+                      {departments.map(d => (
+                        <option key={d._id} value={d._id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500">Select Year</label>
+                    <select
+                      value={assignYear || ""}
+                      onChange={(e) => {
+                        const y = e.target.value;
+                        setAssignYear(y);
+                        if (assignDept && y) fetchCourses(assignDept._id, y);
+                      }}
+                      className="ml-2 px-2 py-1 border rounded-md text-sm"
+                    >
+                      <option value="FY">FY</option>
+                      <option value="SY">SY</option>
+                      <option value="TY">TY</option>
+                    </select>
+                  </div>
+                </div>
               </div>
               <button onClick={() => { setAssignModal(null); setEnrollResult(null); }} className="text-gray-400 hover:text-gray-600">
                 <MdClose className="w-6 h-6" />
@@ -396,14 +439,14 @@ const AdminBatches = () => {
               ) : availCourses.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500 text-sm">
-                    No <strong>{assignModal.year}</strong> courses found for {assignModal.department.name}.
+                    No <strong>{assignYear}</strong> courses found for {assignDept?.name || assignModal.department.name}.
                   </p>
                   <p className="text-xs text-gray-400 mt-1">Create courses tagged with this department + year first.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   <p className="text-xs text-gray-400 mb-3">
-                    Showing {assignModal.year} courses for {assignModal.department.name}. Select to bulk-enroll.
+                    Showing {assignYear} courses for {assignDept?.name || assignModal.department.name}. Select to bulk-enroll.
                   </p>
                   {availCourses.map(course => {
                     const checked = selectedCourses.includes(course._id);

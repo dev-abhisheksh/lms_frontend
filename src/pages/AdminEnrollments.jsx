@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { getAllCourses } from "../API/course.api";
+import { getAllCourses, getCoursesByDeptAndYear } from "../API/course.api";
 import {
   enrollUserInCourse,
   getAllEnrollmentsForCourse,
   getCourseEnrollmentSummary,
   removeUserFromCourse,
 } from "../API/enrollment.api";
+import { Departments } from "../API/department.api";
+import { getUserById } from "../API/auth.api";
 
 const AdminEnrollments = () => {
   const [courses, setCourses] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [selectedDept, setSelectedDept] = useState(null);
+  const [selectedYear, setSelectedYear] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [enrollments, setEnrollments] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -26,11 +31,12 @@ const AdminEnrollments = () => {
 
   // Fetch all courses on component mount
   useEffect(() => {
-    const fetchCourses = async () => {
+    const load = async () => {
       try {
         setLoading(true);
-        const res = await getAllCourses();
-        setCourses(res.data.courses || []);
+        const [deptRes, courseRes] = await Promise.all([Departments(), getAllCourses()]);
+        setDepartments(deptRes.data.departments || []);
+        setCourses(courseRes.data.courses || []);
         setError(null);
       } catch (err) {
         console.error("Failed to fetch courses:", err);
@@ -40,7 +46,7 @@ const AdminEnrollments = () => {
       }
     };
 
-    fetchCourses();
+    load();
   }, []);
 
   // Fetch enrollments when a course is selected
@@ -73,6 +79,38 @@ const AdminEnrollments = () => {
     fetchEnrollmentData();
   }, [selectedCourse]);
 
+  // Fetch courses when department/year filters change
+  useEffect(() => {
+    const fetchFiltered = async () => {
+      if (!selectedDept && !selectedYear) return;
+      try {
+        setLoading(true);
+        const deptId = selectedDept?._id;
+        const res = await getCoursesByDeptAndYear(deptId, selectedYear);
+        setCourses(res.data.courses || []);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to fetch filtered courses:", err);
+        setError("Failed to load courses. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFiltered();
+  }, [selectedDept, selectedYear]);
+
+  const handleFetchTeacher = async () => {
+    if (!enrollFormData.userId.trim()) return alert("Enter User ID first");
+    try {
+      const res = await getUserById(enrollFormData.userId.trim());
+      const { user, managedCourses } = res.data;
+      alert(`${user.fullName} (${user.email}) — Manages ${managedCourses.length} course(s):\n${managedCourses.map(c => c.title).join('\n')}`);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to fetch teacher');
+    }
+  }
+
   // Handle enrollment form submission
   const handleEnrollSubmit = async (e) => {
     e.preventDefault();
@@ -92,7 +130,7 @@ const AdminEnrollments = () => {
       setSuccessMessage(
         `User enrolled successfully as ${enrollFormData.role}!`
       );
-      setEnrollFormData({ userId: "", role: "student" });
+      setEnrollFormData({ userId: "", role: "teacher" });
       setShowEnrollForm(false);
 
       // Refresh enrollments
@@ -294,28 +332,69 @@ const AdminEnrollments = () => {
                         page. Only users with the <strong>teacher</strong> role can be assigned here.
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <input
-                          type="text"
-                          placeholder="Paste full User ID (MongoDB ID)"
-                          value={enrollFormData.userId}
-                          onChange={(e) =>
-                            setEnrollFormData({
-                              ...enrollFormData,
-                              userId: e.target.value,
-                            })
-                          }
-                          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                        />
-                        <div className="px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-600 font-medium">
-                          Role: Teacher
+                        <div className="col-span-1 sm:col-span-1">
+                          <select
+                            value={selectedDept?._id || ""}
+                            onChange={(e) => setSelectedDept(departments.find(d => d._id === e.target.value) || null)}
+                            className="w-full px-3 py-2 border rounded-lg text-sm"
+                          >
+                            <option value="">Select Department</option>
+                            {departments.map(d => (
+                              <option key={d._id} value={d._id}>{d.name}</option>
+                            ))}
+                          </select>
                         </div>
-                        <button
-                          type="submit"
-                          disabled={enrolling}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
-                        >
-                          {enrolling ? "Assigning..." : "Assign Teacher"}
-                        </button>
+
+                        <div className="col-span-1 sm:col-span-1">
+                          <select
+                            value={selectedYear || ""}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                            className="w-full px-3 py-2 border rounded-lg text-sm"
+                          >
+                            <option value="">Select Year</option>
+                            <option value="FY">FY</option>
+                            <option value="SY">SY</option>
+                            <option value="TY">TY</option>
+                          </select>
+                        </div>
+
+                        <div className="col-span-1 sm:col-span-1">
+                          <input
+                            type="text"
+                            placeholder="Paste full User ID (MongoDB ID)"
+                            value={enrollFormData.userId}
+                            onChange={(e) =>
+                              setEnrollFormData({
+                                ...enrollFormData,
+                                userId: e.target.value,
+                              })
+                            }
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm w-full"
+                          />
+                        </div>
+
+                        <div className="col-span-1 sm:col-span-1">
+                          <div className="px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-600 font-medium">
+                            Role: Teacher
+                          </div>
+                        </div>
+
+                        <div className="col-span-1 sm:col-span-1 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={handleFetchTeacher}
+                            className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                          >
+                            Fetch Teacher
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={enrolling}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
+                          >
+                            {enrolling ? "Assigning..." : "Assign Teacher"}
+                          </button>
+                        </div>
                       </div>
                       <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
                         <p className="text-xs text-blue-800">
