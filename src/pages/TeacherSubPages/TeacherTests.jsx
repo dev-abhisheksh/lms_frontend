@@ -11,6 +11,13 @@ import {
   MdPlayArrow,
 } from "react-icons/md";
 import { getTeacherCourses } from "../../API/course.api";
+import {
+  createTest,
+  getTestsByCourse,
+  updateTest,
+  deleteTest,
+  togglePublishTest
+} from "../../API/test.api";
 
 const TestTypeCard = ({ type, title, description, icon: Icon, color }) => {
   return (
@@ -35,6 +42,7 @@ const TeacherTests = () => {
   const [tests, setTests] = useState([]);
   const [testType, setTestType] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [editingTestId, setEditingTestId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     title: "",
@@ -95,56 +103,15 @@ const TeacherTests = () => {
     loadCourses();
   }, []);
 
-  // Fetch tests for selected course (simulated - replace with actual API)
+  // Fetch tests for selected course
   useEffect(() => {
     if (!selectedCourse) return;
 
     const loadTests = async () => {
       setLoading(true);
       try {
-        // Simulate API call - replace with actual endpoint
-        const mockTests = [
-          {
-            _id: "1",
-            title: "Python Basics Quiz",
-            description: "Test your knowledge on Python fundamentals",
-            type: "mcq",
-            duration: 30,
-            totalQuestions: 20,
-            totalMarks: 20,
-            passingMarks: 12,
-            isPublished: true,
-            createdAt: new Date(2024, 0, 15),
-            questionsCount: 20,
-          },
-          {
-            _id: "2",
-            title: "OOP Concepts Assessment",
-            description: "Evaluate understanding of Object-Oriented Programming",
-            type: "mixed",
-            duration: 60,
-            totalQuestions: 15,
-            totalMarks: 50,
-            passingMarks: 25,
-            isPublished: true,
-            createdAt: new Date(2024, 0, 20),
-            questionsCount: 15,
-          },
-          {
-            _id: "3",
-            title: "Data Structures Assignment",
-            description: "Test on arrays, lists, stacks, and queues",
-            type: "essay",
-            duration: 90,
-            totalQuestions: 5,
-            totalMarks: 30,
-            passingMarks: 15,
-            isPublished: false,
-            createdAt: new Date(2024, 1, 5),
-            questionsCount: 5,
-          },
-        ];
-        setTests(mockTests);
+        const response = await getTestsByCourse(selectedCourse);
+        setTests(response.data.tests || []);
       } catch (error) {
         console.error("Error loading tests:", error);
       } finally {
@@ -171,37 +138,80 @@ const TeacherTests = () => {
       return;
     }
 
-    const newTest = {
-      _id: Date.now().toString(),
-      ...formData,
-      createdAt: new Date(),
-      questionsCount: formData.totalQuestions,
-    };
+    try {
+      if (editingTestId) {
+        await updateTest(editingTestId, formData);
+        alert(`${formData.type.toUpperCase()} test updated successfully!`);
+      } else {
+        await createTest(selectedCourse, formData);
+        alert(`${formData.type.toUpperCase()} test created successfully!`);
+      }
 
-    setTests((prev) => [newTest, ...prev]);
-    alert(`${formData.type.toUpperCase()} test created successfully!`);
+      setFormData({
+        title: "",
+        description: "",
+        type: "mcq",
+        duration: 60,
+        totalQuestions: 0,
+        totalMarks: 100,
+        passingMarks: 40,
+        isPublished: false,
+        questions: [],
+      });
+      setTestType(null);
+      setShowForm(false);
+      setEditingTestId(null);
 
-    setFormData({
-      title: "",
-      description: "",
-      type: "mcq",
-      duration: 60,
-      totalQuestions: 0,
-      totalMarks: 100,
-      passingMarks: 40,
-      isPublished: false,
-      questions: [],
-    });
-    setTestType(null);
-    setShowForm(false);
+      // Reload tests
+      const response = await getTestsByCourse(selectedCourse);
+      setTests(response.data.tests || []);
+    } catch (error) {
+      console.error("Error saving test:", error);
+      alert("Failed to save test");
+    }
   };
 
   // Delete test
-  const handleDeleteTest = (testId) => {
+  const handleDeleteTest = async (testId) => {
     if (window.confirm("Are you sure you want to delete this test?")) {
-      setTests((prev) => prev.filter((t) => t._id !== testId));
-      alert("Test deleted successfully!");
+      try {
+        await deleteTest(testId);
+        setTests((prev) => prev.filter((t) => t._id !== testId));
+        alert("Test deleted successfully!");
+      } catch (error) {
+        console.error("Error deleting test:", error);
+        alert("Failed to delete test");
+      }
     }
+  };
+
+  const handleTogglePublish = async (testId) => {
+    try {
+      await togglePublishTest(testId);
+      const response = await getTestsByCourse(selectedCourse);
+      setTests(response.data.tests || []);
+    } catch (error) {
+      console.error("Error toggling test publish status:", error);
+    }
+  };
+
+  const handleEditTest = (test) => {
+    setEditingTestId(test._id);
+    const typeObj = testTypes.find((t) => t.id === test.type);
+    setTestType(typeObj);
+    setFormData({
+      title: test.title || "",
+      description: test.description || "",
+      type: test.type || "mcq",
+      duration: test.duration || 60,
+      totalQuestions: test.totalQuestions || 0,
+      totalMarks: test.totalMarks || 100,
+      passingMarks: test.passingMarks || 40,
+      isPublished: test.isPublished || false,
+      questions: test.questions || [],
+    });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Start creating test of specific type
@@ -245,8 +255,24 @@ const TeacherTests = () => {
           </div>
           <button
             onClick={() => {
-              setShowForm(false);
-              setTestType(null);
+              if (showForm) {
+                setShowForm(false);
+                setTestType(null);
+                setEditingTestId(null);
+                setFormData({
+                  title: "",
+                  description: "",
+                  type: "mcq",
+                  duration: 60,
+                  totalQuestions: 0,
+                  totalMarks: 100,
+                  passingMarks: 40,
+                  isPublished: false,
+                  questions: [],
+                });
+              } else {
+                setShowForm(true);
+              }
             }}
             className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
           >
@@ -304,7 +330,7 @@ const TeacherTests = () => {
         {showForm && testType && selectedCourse && (
           <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">
-              Create {testType.title}
+              {editingTestId ? `Edit ${testType.title}` : `Create ${testType.title}`}
             </h2>
             <form onSubmit={handleSubmitTest} className="space-y-4">
 
@@ -426,7 +452,7 @@ const TeacherTests = () => {
                   type="submit"
                   className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
                 >
-                  Create Test
+                  {editingTestId ? "Update Test" : "Create Test"}
                 </button>
               </div>
             </form>
@@ -506,9 +532,14 @@ const TeacherTests = () => {
                           <MdAdd className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() =>
-                            navigate(`/teacher/tests/${test._id}/edit`)
-                          }
+                          onClick={() => handleTogglePublish(test._id)}
+                          className="p-2 hover:bg-green-50 rounded-lg text-green-600 transition"
+                          title="Toggle Publish"
+                        >
+                          <MdCheckCircle className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditTest(test)}
                           className="p-2 hover:bg-yellow-50 rounded-lg text-yellow-600 transition"
                           title="Edit"
                         >

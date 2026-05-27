@@ -15,6 +15,7 @@ import { getTeacherCourses } from "../../API/course.api";
 import {
   getAssignmentsByCourse,
   createAssignment,
+  updateAssignment,
   deleteAssignment,
   togglePublishAssignment,
 } from "../../API/assignment.api";
@@ -25,6 +26,7 @@ const TeacherAssignments = () => {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingAssignmentId, setEditingAssignmentId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     title: "",
@@ -104,8 +106,14 @@ const TeacherAssignments = () => {
     });
 
     try {
-      await createAssignment(selectedCourse, form);
-      alert("Assignment created successfully!");
+      if (editingAssignmentId) {
+        await updateAssignment(editingAssignmentId, form);
+        alert("Assignment updated successfully!");
+      } else {
+        await createAssignment(selectedCourse, form);
+        alert("Assignment created successfully!");
+      }
+      
       setFormData({
         title: "",
         description: "",
@@ -116,15 +124,39 @@ const TeacherAssignments = () => {
       });
       setAttachmentFiles([]);
       setShowForm(false);
+      setEditingAssignmentId(null);
 
       // Reload assignments
       const response = await getAssignmentsByCourse(selectedCourse);
       setAssignments(response.data.assignments || []);
     } catch (error) {
-      console.error("Error creating assignment:", error);
-      alert("Failed to create assignment: " + error.message);
+      console.error("Error saving assignment:", error);
+      alert("Failed to save assignment: " + error.message);
     }
   };
+
+  const handleEditAssignment = (assignment) => {
+    setEditingAssignmentId(assignment._id);
+    let formattedDate = "";
+    if (assignment.dueDate) {
+      // Convert to local datetime string format for the input
+      const date = new Date(assignment.dueDate);
+      date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+      formattedDate = date.toISOString().slice(0, 16);
+    }
+
+    setFormData({
+      title: assignment.title || "",
+      description: assignment.description || "",
+      dueDate: formattedDate,
+      maxMarks: assignment.maxMarks || 100,
+      allowLate: assignment.allowLate !== undefined ? assignment.allowLate : true,
+      attachments: [],
+    });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
 
   // Delete assignment
   const handleDeleteAssignment = async (assignmentId) => {
@@ -173,7 +205,22 @@ const TeacherAssignments = () => {
             </div>
           </div>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              if (showForm) {
+                setShowForm(false);
+              } else {
+                setEditingAssignmentId(null);
+                setFormData({
+                  title: "",
+                  description: "",
+                  dueDate: "",
+                  maxMarks: 100,
+                  allowLate: true,
+                  attachments: [],
+                });
+                setShowForm(true);
+              }
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
           >
             <MdAdd className="w-5 h-5" />
@@ -203,7 +250,9 @@ const TeacherAssignments = () => {
         {/* Assignment Form */}
         {showForm && selectedCourse && (
           <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">Create New Assignment</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              {editingAssignmentId ? "Edit Assignment" : "Create New Assignment"}
+            </h2>
             <form onSubmit={handleSubmitAssignment} className="space-y-4">
 
               <div>
@@ -306,7 +355,7 @@ const TeacherAssignments = () => {
                   type="submit"
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
                 >
-                  Create Assignment
+                  {editingAssignmentId ? "Update Assignment" : "Create Assignment"}
                 </button>
               </div>
             </form>
@@ -379,11 +428,7 @@ const TeacherAssignments = () => {
                         <MdVisibility className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() =>
-                          navigate(
-                            `/teacher/assignments/${assignment._id}/edit`
-                          )
-                        }
+                        onClick={() => handleEditAssignment(assignment)}
                         className="p-2 hover:bg-yellow-50 rounded-lg text-yellow-600 transition"
                         title="Edit"
                       >

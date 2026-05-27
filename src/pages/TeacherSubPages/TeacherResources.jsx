@@ -10,6 +10,7 @@ import {
   MdDownload,
   MdUploadFile,
   MdFolderOpen,
+  MdFileCopy,
 } from "react-icons/md";
 import { getTeacherCourses } from "../../API/course.api";
 
@@ -166,7 +167,7 @@ const TeacherResources = () => {
       case "audio":
         return <MdAudioFile className="w-4 h-4" />;
       default:
-        return <MdFile className="w-4 h-4" />;
+        return <MdFileCopy className="w-4 h-4" />;
     }
   };
 
