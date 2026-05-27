@@ -1,5 +1,5 @@
 import React from 'react'
-import Bottombar from '../Bottombar'
+import AdminBottombar from './AdminBottombar'
 import AdminSideBar from './AdminSideBar'
 import Navbar from '../Navbar'
 import { Outlet } from 'react-router-dom'
@@ -26,7 +26,7 @@ const AdminUniversal = () => {
 
 
             </div>
-            <Bottombar />
+            <AdminBottombar />
         </div>
     )
 }
