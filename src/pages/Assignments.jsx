@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { getAssignments } from '../API/assignment.api';
+import { getAssignments, getAssignmentsByCourse } from '../API/assignment.api';
+import { socketManager } from '../API/socket.api';
 import { MdAssignment, MdCalendarToday, MdCheckCircle, MdPending, MdGrade, MdDownload } from 'react-icons/md';
 
 const Assignments = () => {
@@ -21,6 +22,84 @@ const Assignments = () => {
             }
         };
         fetchAssignments();
+    }, []);
+
+    // ─── Setup Socket.IO connection for real-time updates ──────────────
+    useEffect(() => {
+        const token = localStorage.getItem("accessToken");
+        const userId = localStorage.getItem("user");
+
+        // Connect to socket server
+        socketManager.connect(token);
+
+        // Listen for new assignments in real-time
+        const handleNewAssignment = (newAssignment) => {
+            console.log("📨 New assignment received via WebSocket:", newAssignment);
+            
+            // Add to state without page refresh
+            setAssignments(prev => {
+                // Avoid duplicates
+                const exists = prev.some(a => a._id === newAssignment._id);
+                return exists ? prev : [newAssignment, ...prev];
+            });
+        };
+
+        // Listen for assignment updates
+        const handleAssignmentUpdated = (updatedAssignment) => {
+            console.log("📝 Assignment updated:", updatedAssignment);
+            
+            setAssignments(prev =>
+                prev.map(a => a._id === updatedAssignment._id ? updatedAssignment : a)
+            );
+        };
+
+        // Listen for assignment deletion
+        const handleAssignmentDeleted = ({ assignmentId }) => {
+            console.log("🗑️ Assignment deleted:", assignmentId);
+            
+            setAssignments(prev => prev.filter(a => a._id !== assignmentId));
+        };
+
+        // Register listeners
+        socketManager.on("assignment:created", handleNewAssignment);
+        socketManager.on("assignment:updated", handleAssignmentUpdated);
+        socketManager.on("assignment:deleted", handleAssignmentDeleted);
+
+        // Cleanup on unmount
+        return () => {
+            socketManager.off("assignment:created", handleNewAssignment);
+            socketManager.off("assignment:updated", handleAssignmentUpdated);
+            socketManager.off("assignment:deleted", handleAssignmentDeleted);
+        };
+    }, []);
+
+    // ─── Join courses when enrolled courses load ─────────────────────
+    useEffect(() => {
+        const userId = localStorage.getItem("user");
+        
+        // Fetch enrolled courses to join their rooms
+        const loadUserCourses = async () => {
+            try {
+                // You might need to create an API to get student's courses
+                // For now, we'll join based on assignments
+                const res = await getAssignments();
+                if (res.data?.assignments) {
+                    const courseIds = [...new Set(res.data.assignments.map(a => a.course?._id || a.course).filter(Boolean))];
+                    if (courseIds.length > 0) {
+                        socketManager.joinCourses(courseIds, userId);
+                        console.log(`✅ Joined ${courseIds.length} course rooms`);
+                    }
+                }
+            } catch (error) {
+                console.error("Error loading user courses:", error);
+            }
+        };
+
+        loadUserCourses();
+
+        return () => {
+            // Optional: Leave courses on unmount
+        };
     }, []);
 
     // Filter assignments based on status
