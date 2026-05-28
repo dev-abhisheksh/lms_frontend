@@ -65,13 +65,26 @@ const Assignments = () => {
             });
         };
 
-        // Listen for assignment updates
+        // Listen for assignment updates (like publish toggle)
         const handleAssignmentUpdated = (updatedAssignment) => {
             console.log("📝 Assignment updated:", updatedAssignment);
             
-            setAssignments(prev =>
-                prev.map(a => a._id === updatedAssignment._id ? updatedAssignment : a)
-            );
+            setAssignments(prev => {
+                const exists = prev.some(a => a._id === updatedAssignment._id);
+                
+                // If the assignment was unpublished, remove it from the list
+                if (!updatedAssignment.isPublished) {
+                    return prev.filter(a => a._id !== updatedAssignment._id);
+                }
+                
+                // If it exists and is published, update it
+                if (exists) {
+                    return prev.map(a => a._id === updatedAssignment._id ? updatedAssignment : a);
+                }
+                
+                // If it didn't exist but is now published, add it
+                return [updatedAssignment, ...prev];
+            });
         };
 
         // Listen for assignment deletion
@@ -86,14 +99,19 @@ const Assignments = () => {
         socketManager.on("assignment:updated", handleAssignmentUpdated);
         socketManager.on("assignment:deleted", handleAssignmentDeleted);
 
-        // Join courses
-        if (assignments.length > 0) {
-            const courseIds = [...new Set(assignments.map(a => a.course?._id || a.course).filter(Boolean))];
-            if (courseIds.length > 0) {
-                socketManager.joinCourses(courseIds, userId);
-                console.log(`✅ Joined ${courseIds.length} course rooms`);
-            }
-        }
+        // Fetch user's courses to join the correct socket rooms
+        import('../API/course.api').then(({ myCourses }) => {
+            myCourses().then(res => {
+                if (res.data && res.data.courses) {
+                    // map over the enrollments to extract the course IDs
+                    const courseIds = res.data.courses.map(enrollment => enrollment.course?._id || enrollment.course).filter(Boolean);
+                    if (courseIds.length > 0) {
+                        socketManager.joinCourses(courseIds, userId);
+                        console.log(`✅ Joined ${courseIds.length} course rooms for live updates`);
+                    }
+                }
+            }).catch(err => console.error("Failed to fetch courses for socket connection:", err));
+        });
 
         // Cleanup on unmount
         return () => {
@@ -101,7 +119,7 @@ const Assignments = () => {
             socketManager.removeAllListeners("assignment:updated");
             socketManager.removeAllListeners("assignment:deleted");
         };
-    }, [assignments]);
+    }, []);
 
     // ─── Filter assignments ────────────────────────────────────────────
     const getFilteredAssignments = useCallback(() => {
