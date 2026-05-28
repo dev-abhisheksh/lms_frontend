@@ -1,33 +1,54 @@
-import React, { useEffect, useState } from 'react';
-import { getAssignments, getAssignmentsByCourse } from '../API/assignment.api';
+import React, { useEffect, useState, useCallback } from 'react';
+import { getAssignments } from '../API/assignment.api';
 import { socketManager } from '../API/socket.api';
-import { MdAssignment, MdCalendarToday, MdCheckCircle, MdPending, MdGrade, MdDownload } from 'react-icons/md';
+import { MdAssignment, MdCalendarToday, MdCheckCircle, MdPending, MdGrade, MdDownload, MdRefresh, MdError, MdClose } from 'react-icons/md';
 
 const Assignments = () => {
     const [assignments, setAssignments] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [initialLoading, setInitialLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [error, setError] = useState(null);
     const [filter, setFilter] = useState('all'); // all, pending, submitted, graded
-    const [sortBy, setSortBy] = useState('dueDate'); // dueDate, title, course
+    const [sortBy, setSortBy] = useState('dueDate'); // dueDate, title
 
-    useEffect(() => {
-        const fetchAssignments = async () => {
-            setLoading(true);
-            try {
-                const res = await getAssignments();
-                setAssignments(res.data?.assignments || []);
-            } catch (error) {
-                console.error("Error fetching assignments:", error);
-            } finally {
-                setLoading(false);
+    // ─── Fetch assignments ─────────────────────────────────────────────
+    const fetchAssignments = useCallback(async (isRefresh = false) => {
+        try {
+            if (isRefresh) setIsRefreshing(true);
+            else setInitialLoading(true);
+            
+            setError(null);
+            const res = await getAssignments();
+            
+            if (res.data?.assignments) {
+                setAssignments(res.data.assignments);
+                console.log(`✅ Loaded ${res.data.count || 0} assignments`);
+            } else {
+                setAssignments([]);
             }
-        };
-        fetchAssignments();
+        } catch (error) {
+            console.error("Error fetching assignments:", error);
+            setError(error.response?.data?.message || "Failed to load assignments. Please try again.");
+        } finally {
+            if (isRefresh) setIsRefreshing(false);
+            else setInitialLoading(false);
+        }
     }, []);
+
+    // ─── Initial load ──────────────────────────────────────────────────
+    useEffect(() => {
+        fetchAssignments();
+    }, [fetchAssignments]);
 
     // ─── Setup Socket.IO connection for real-time updates ──────────────
     useEffect(() => {
         const token = localStorage.getItem("accessToken");
         const userId = localStorage.getItem("user");
+
+        if (!token || !userId) {
+            console.warn("⚠️ No auth token or user ID found");
+            return;
+        }
 
         // Connect to socket server
         socketManager.connect(token);
@@ -36,11 +57,11 @@ const Assignments = () => {
         const handleNewAssignment = (newAssignment) => {
             console.log("📨 New assignment received via WebSocket:", newAssignment);
             
-            // Add to state without page refresh
             setAssignments(prev => {
                 // Avoid duplicates
                 const exists = prev.some(a => a._id === newAssignment._id);
-                return exists ? prev : [newAssignment, ...prev];
+                if (exists) return prev;
+                return [newAssignment, ...prev];
             });
         };
 
@@ -65,52 +86,29 @@ const Assignments = () => {
         socketManager.on("assignment:updated", handleAssignmentUpdated);
         socketManager.on("assignment:deleted", handleAssignmentDeleted);
 
+        // Join courses
+        if (assignments.length > 0) {
+            const courseIds = [...new Set(assignments.map(a => a.course?._id || a.course).filter(Boolean))];
+            if (courseIds.length > 0) {
+                socketManager.joinCourses(courseIds, userId);
+                console.log(`✅ Joined ${courseIds.length} course rooms`);
+            }
+        }
+
         // Cleanup on unmount
         return () => {
-            socketManager.off("assignment:created", handleNewAssignment);
-            socketManager.off("assignment:updated", handleAssignmentUpdated);
-            socketManager.off("assignment:deleted", handleAssignmentDeleted);
+            socketManager.removeAllListeners("assignment:created");
+            socketManager.removeAllListeners("assignment:updated");
+            socketManager.removeAllListeners("assignment:deleted");
         };
-    }, []);
+    }, [assignments]);
 
-    // ─── Join courses when enrolled courses load ─────────────────────
-    useEffect(() => {
-        const userId = localStorage.getItem("user");
-        
-        // Fetch enrolled courses to join their rooms
-        const loadUserCourses = async () => {
-            try {
-                // You might need to create an API to get student's courses
-                // For now, we'll join based on assignments
-                const res = await getAssignments();
-                if (res.data?.assignments) {
-                    const courseIds = [...new Set(res.data.assignments.map(a => a.course?._id || a.course).filter(Boolean))];
-                    if (courseIds.length > 0) {
-                        socketManager.joinCourses(courseIds, userId);
-                        console.log(`✅ Joined ${courseIds.length} course rooms`);
-                    }
-                }
-            } catch (error) {
-                console.error("Error loading user courses:", error);
-            }
-        };
-
-        loadUserCourses();
-
-        return () => {
-            // Optional: Leave courses on unmount
-        };
-    }, []);
-
-    // Filter assignments based on status
-    const getFilteredAssignments = () => {
+    // ─── Filter assignments ────────────────────────────────────────────
+    const getFilteredAssignments = useCallback(() => {
         let filtered = [...assignments];
         
         if (filter !== 'all') {
-            filtered = filtered.filter(a => {
-                // Assuming submission status is in the assignment object
-                return a.submissionStatus === filter;
-            });
+            filtered = filtered.filter(a => a.submissionStatus === filter);
         }
 
         // Sort
@@ -124,12 +122,13 @@ const Assignments = () => {
         });
 
         return filtered;
-    };
+    }, [assignments, filter, sortBy]);
 
     const filteredAssignments = getFilteredAssignments();
 
+    // ─── Helper functions ──────────────────────────────────────────────
     const getStatusBadge = (assignment) => {
-        let status = 'pending';
+        let status = 'Pending';
         let color = 'bg-orange-100 text-orange-700';
         let icon = MdPending;
 
@@ -141,18 +140,17 @@ const Assignments = () => {
             color = 'bg-green-100 text-green-700';
             icon = MdGrade;
             status = 'Graded';
-        } else {
-            status = 'Pending';
         }
 
         return { status, color, icon };
     };
 
     const isOverdue = (dueDate) => {
-        return new Date(dueDate) < new Date() && !dueDate.submitted;
+        return new Date(dueDate) < new Date();
     };
 
     const formatDate = (date) => {
+        if (!date) return 'N/A';
         return new Date(date).toLocaleDateString('en-IN', { 
             day: 'numeric', 
             month: 'short', 
@@ -162,91 +160,129 @@ const Assignments = () => {
         });
     };
 
+    // ─── Render ────────────────────────────────────────────────────────
     return (
-        <div className='h-full w-full bg-white rounded-lg overflow-y-auto flex flex-col'>
+        <div className='h-full w-full bg-white rounded-lg overflow-hidden flex flex-col'>
             
             {/* Header */}
-            <div className='sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6'>
+            <div className='sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 z-10'>
                 <div className='flex items-center justify-between mb-4'>
                     <div>
                         <h1 className='text-2xl font-bold text-gray-900'>Assignments</h1>
-                        <p className='text-sm text-gray-600 mt-1'>{assignments.length} total assignments</p>
+                        <p className='text-sm text-gray-600 mt-1'>
+                            {initialLoading ? 'Loading...' : `${assignments.length} total ${assignments.length === 1 ? 'assignment' : 'assignments'}`}
+                        </p>
                     </div>
-                    <div className='p-3 bg-blue-100 rounded-lg'>
-                        <MdAssignment className='w-6 h-6 text-blue-600' />
+                    <div className='flex items-center gap-2'>
+                        <button
+                            onClick={() => fetchAssignments(true)}
+                            disabled={isRefreshing}
+                            className='p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50'
+                            title="Refresh"
+                        >
+                            <MdRefresh className={`w-6 h-6 text-gray-600 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        </button>
+                        <div className='p-3 bg-blue-100 rounded-lg'>
+                            <MdAssignment className='w-6 h-6 text-blue-600' />
+                        </div>
                     </div>
                 </div>
+
+                {/* Error Message */}
+                {error && (
+                    <div className='mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2'>
+                        <MdError className='w-5 h-5 text-red-600 mt-0.5 shrink-0' />
+                        <div className='flex-1 text-sm text-red-700'>
+                            <p className='font-medium'>{error}</p>
+                            <button 
+                                onClick={() => fetchAssignments(true)}
+                                className='text-red-600 hover:text-red-800 font-medium mt-1'
+                            >
+                                Try Again →
+                            </button>
+                        </div>
+                        <button 
+                            onClick={() => setError(null)}
+                            className='text-red-400 hover:text-red-600 shrink-0'
+                        >
+                            <MdClose className='w-5 h-5' />
+                        </button>
+                    </div>
+                )}
 
                 {/* Filters & Sort */}
-                <div className='grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3'>
-                    {/* Filter Buttons */}
-                    <div className='col-span-2 sm:col-span-2 flex gap-2 flex-wrap'>
-                        {['all', 'pending', 'submitted', 'graded'].map(f => (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                                    filter === f
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                            >
-                                {f.charAt(0).toUpperCase() + f.slice(1)}
-                            </button>
-                        ))}
-                    </div>
+                {!initialLoading && assignments.length > 0 && (
+                    <div className='grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3'>
+                        {/* Filter Buttons */}
+                        <div className='col-span-2 sm:col-span-2 flex gap-2 flex-wrap'>
+                            {['all', 'pending', 'submitted', 'graded'].map(f => (
+                                <button
+                                    key={f}
+                                    onClick={() => setFilter(f)}
+                                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                                        filter === f
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                                </button>
+                            ))}
+                        </div>
 
-                    {/* Sort Dropdown */}
-                    <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className='px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm text-gray-700 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    >
-                        <option value='dueDate'>Due Date</option>
-                        <option value='title'>Title</option>
-                    </select>
-                </div>
+                        {/* Sort Dropdown */}
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className='px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm text-gray-700 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        >
+                            <option value='dueDate'>Due Date</option>
+                            <option value='title'>Title</option>
+                        </select>
+                    </div>
+                )}
             </div>
 
             {/* Content */}
             <div className='flex-1 p-4 sm:p-6 overflow-y-auto'>
                 
                 {/* Loading State */}
-                {loading && (
+                {initialLoading && (
                     <div className='space-y-3'>
-                        {[...Array(3)].map((_, i) => (
-                            <div key={i} className='bg-gray-100 rounded-lg h-20 animate-pulse' />
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className='bg-gray-200 rounded-lg h-24 animate-pulse' />
                         ))}
                     </div>
                 )}
 
                 {/* Empty State */}
-                {!loading && filteredAssignments.length === 0 && (
-                    <div className='text-center py-12'>
-                        <div className='w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center'>
-                            <MdAssignment className='w-8 h-8 text-gray-400' />
+                {!initialLoading && filteredAssignments.length === 0 && !error && (
+                    <div className='text-center py-16'>
+                        <div className='w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center'>
+                            <MdAssignment className='w-10 h-10 text-gray-400' />
                         </div>
                         <h3 className='text-lg font-semibold text-gray-900 mb-1'>No assignments found</h3>
                         <p className='text-sm text-gray-600'>
                             {filter === 'all' 
-                                ? 'No assignments yet' 
-                                : `No ${filter} assignments`
+                                ? 'No assignments have been assigned yet' 
+                                : `No ${filter} assignments in this filter`
                             }
                         </p>
                     </div>
                 )}
 
                 {/* Assignments List */}
-                {!loading && filteredAssignments.length > 0 && (
+                {!initialLoading && filteredAssignments.length > 0 && (
                     <div className='space-y-3'>
                         {filteredAssignments.map((assignment) => {
                             const { status, color, icon: StatusIcon } = getStatusBadge(assignment);
                             const overdue = isOverdue(assignment.dueDate);
+                            const course = assignment.course?.title || assignment.courseId?.title || 'Course';
 
                             return (
                                 <div 
                                     key={assignment._id}
-                                    className='bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all group cursor-pointer'
+                                    className='bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-blue-300 transition-all group'
                                 >
                                     <div className='flex items-start gap-4'>
                                         {/* Icon */}
@@ -256,6 +292,7 @@ const Assignments = () => {
 
                                         {/* Details */}
                                         <div className='flex-1 min-w-0'>
+                                            {/* Title & Status */}
                                             <div className='flex items-start justify-between gap-2 mb-2'>
                                                 <h3 className='text-base sm:text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2'>
                                                     {assignment.title}
@@ -267,11 +304,9 @@ const Assignments = () => {
                                             </div>
 
                                             {/* Course Name */}
-                                            {assignment.courseId?.title && (
-                                                <p className='text-xs sm:text-sm text-gray-600 mb-2'>
-                                                    {assignment.courseId.title}
-                                                </p>
-                                            )}
+                                            <p className='text-xs sm:text-sm text-gray-600 mb-2 font-medium'>
+                                                {course}
+                                            </p>
 
                                             {/* Description */}
                                             {assignment.description && (
@@ -280,46 +315,47 @@ const Assignments = () => {
                                                 </p>
                                             )}
 
-                                            {/* Due Date & Details */}
+                                            {/* Meta Info */}
                                             <div className='flex flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm'>
-                                                <div className='flex items-center gap-1 text-gray-600'>
-                                                    <MdCalendarToday className='w-4 h-4' />
-                                                    <span className={overdue ? 'text-red-600 font-medium' : ''}>
-                                                        Due: {formatDate(assignment.dueDate)}
+                                                {/* Due Date */}
+                                                <div className='flex items-center gap-1'>
+                                                    <MdCalendarToday className={`w-4 h-4 ${overdue ? 'text-red-500' : 'text-gray-400'}`} />
+                                                    <span className={overdue ? 'text-red-600 font-medium' : 'text-gray-600'}>
+                                                        {formatDate(assignment.dueDate)}
                                                     </span>
                                                 </div>
 
-                                                {/* Points if available */}
-                                                {assignment.totalPoints && (
+                                                {/* Max Marks */}
+                                                {assignment.maxMarks && (
                                                     <div className='flex items-center gap-1 text-gray-600'>
                                                         <MdGrade className='w-4 h-4' />
-                                                        <span>{assignment.totalPoints} points</span>
+                                                        <span>{assignment.maxMarks} points</span>
                                                     </div>
                                                 )}
 
                                                 {/* Grade if graded */}
                                                 {assignment.submissionStatus === 'graded' && assignment.grade !== undefined && (
                                                     <div className='flex items-center gap-1 text-green-600 font-medium'>
-                                                        <MdGrade className='w-4 h-4' />
-                                                        <span>Grade: {assignment.grade}/{assignment.totalPoints || 100}</span>
+                                                        <MdCheckCircle className='w-4 h-4' />
+                                                        <span>Scored: {assignment.grade}/{assignment.maxMarks || 100}</span>
                                                     </div>
                                                 )}
                                             </div>
 
-                                            {/* Attachments if any */}
+                                            {/* Attachments */}
                                             {assignment.attachments && assignment.attachments.length > 0 && (
                                                 <div className='mt-3 pt-3 border-t border-gray-100'>
-                                                    <div className='flex items-center gap-1 text-xs text-gray-600'>
+                                                    <button className='flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium'>
                                                         <MdDownload className='w-4 h-4' />
-                                                        <span>{assignment.attachments.length} file(s) attached</span>
-                                                    </div>
+                                                        {assignment.attachments.length} attachment(s)
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* Action Button */}
-                                        <button className='px-3 py-1.5 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shrink-0'>
-                                            {assignment.submissionStatus === 'submitted' ? 'View' : 'Submit'}
+                                        <button className='px-3 py-1.5 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shrink-0 whitespace-nowrap'>
+                                            {assignment.submissionStatus === 'submitted' || assignment.submissionStatus === 'graded' ? 'View' : 'Submit'}
                                         </button>
                                     </div>
                                 </div>
