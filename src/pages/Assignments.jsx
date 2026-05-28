@@ -1,25 +1,45 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { getAssignments } from '../API/assignment.api';
-import { socketManager } from '../API/socket.api';
+import { myCourses } from '../API/course.api';
 import { MdAssignment, MdCalendarToday, MdCheckCircle, MdPending, MdGrade, MdDownload, MdRefresh, MdError, MdClose } from 'react-icons/md';
+import { connectAssignmentSocket, disconnectAssignmentSocket } from '../socket/assignment.socket';
 
 const Assignments = () => {
     const [assignments, setAssignments] = useState([]);
+    const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
     const [initialLoading, setInitialLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState(null);
     const [filter, setFilter] = useState('all'); // all, pending, submitted, graded
     const [sortBy, setSortBy] = useState('dueDate'); // dueDate, title
+    const socketConnected = useRef(false);
+
+    // ─── Fetch enrolled course IDs (for socket rooms) ──────────────────
+    useEffect(() => {
+        const loadCourseIds = async () => {
+            try {
+                const res = await myCourses();
+                const enrollments = res.data?.courses || [];
+                const ids = enrollments
+                    .filter(e => e.course?._id)
+                    .map(e => e.course._id);
+                setEnrolledCourseIds(ids);
+            } catch (err) {
+                console.error("Error fetching enrolled courses for socket:", err);
+            }
+        };
+        loadCourseIds();
+    }, []);
 
     // ─── Fetch assignments ─────────────────────────────────────────────
     const fetchAssignments = useCallback(async (isRefresh = false) => {
         try {
             if (isRefresh) setIsRefreshing(true);
             else setInitialLoading(true);
-            
+
             setError(null);
             const res = await getAssignments();
-            
+
             if (res.data?.assignments) {
                 setAssignments(res.data.assignments);
                 console.log(`✅ Loaded ${res.data.count || 0} assignments`);
@@ -42,89 +62,60 @@ const Assignments = () => {
 
     // ─── Setup Socket.IO connection for real-time updates ──────────────
     useEffect(() => {
-        const token = localStorage.getItem("accessToken");
-        const userId = localStorage.getItem("user");
+        // Wait until we have enrolled course IDs and initial load is done
+        if (initialLoading || enrolledCourseIds.length === 0) return;
 
-        if (!token || !userId) {
-            console.warn("⚠️ No auth token or user ID found");
-            return;
-        }
+        // Prevent duplicate connections
+        if (socketConnected.current) return;
+        socketConnected.current = true;
 
-        // Connect to socket server
-        socketManager.connect(token);
-
-        // Listen for new assignments in real-time
-        const handleNewAssignment = (newAssignment) => {
-            console.log("📨 New assignment received via WebSocket:", newAssignment);
-            
-            setAssignments(prev => {
-                // Avoid duplicates
-                const exists = prev.some(a => a._id === newAssignment._id);
-                if (exists) return prev;
-                return [newAssignment, ...prev];
-            });
-        };
-
-        // Listen for assignment updates (like publish toggle)
-        const handleAssignmentUpdated = (updatedAssignment) => {
-            console.log("📝 Assignment updated:", updatedAssignment);
-            
-            setAssignments(prev => {
-                const exists = prev.some(a => a._id === updatedAssignment._id);
-                
-                // If the assignment was unpublished, remove it from the list
-                if (!updatedAssignment.isPublished) {
-                    return prev.filter(a => a._id !== updatedAssignment._id);
+        connectAssignmentSocket(
+            enrolledCourseIds,
+            {
+                // onCreated — a new assignment was published
+                onCreated: (assignment) => {
+                    setAssignments(prev => {
+                        // Don't add if it already exists or isn't published
+                        if (!assignment.isPublished) return prev;
+                        if (prev.some(a => a._id === assignment._id)) return prev;
+                        return [assignment, ...prev];
+                    });
+                },
+                // onUpdated — assignment was toggled or edited
+                onUpdated: (assignment) => {
+                    setAssignments(prev => {
+                        const exists = prev.some(a => a._id === assignment._id);
+                        if (exists) {
+                            if (!assignment.isPublished) {
+                                // Unpublished → remove from student view
+                                return prev.filter(a => a._id !== assignment._id);
+                            }
+                            // Update in place
+                            return prev.map(a => a._id === assignment._id ? assignment : a);
+                        } else if (assignment.isPublished) {
+                            // Newly published, add to list
+                            return [assignment, ...prev];
+                        }
+                        return prev;
+                    });
+                },
+                // onDeleted — assignment was deleted
+                onDeleted: ({ assignmentId }) => {
+                    setAssignments(prev => prev.filter(a => a._id !== assignmentId));
                 }
-                
-                // If it exists and is published, update it
-                if (exists) {
-                    return prev.map(a => a._id === updatedAssignment._id ? updatedAssignment : a);
-                }
-                
-                // If it didn't exist but is now published, add it
-                return [updatedAssignment, ...prev];
-            });
-        };
+            }
+        );
 
-        // Listen for assignment deletion
-        const handleAssignmentDeleted = ({ assignmentId }) => {
-            console.log("🗑️ Assignment deleted:", assignmentId);
-            
-            setAssignments(prev => prev.filter(a => a._id !== assignmentId));
-        };
-
-        // Register listeners
-        socketManager.on("assignment:created", handleNewAssignment);
-        socketManager.on("assignment:updated", handleAssignmentUpdated);
-        socketManager.on("assignment:deleted", handleAssignmentDeleted);
-
-        // Fetch user's courses to join the correct socket rooms
-        import('../API/course.api').then(({ myCourses }) => {
-            myCourses().then(res => {
-                if (res.data && res.data.courses) {
-                    // map over the enrollments to extract the course IDs
-                    const courseIds = res.data.courses.map(enrollment => enrollment.course?._id || enrollment.course).filter(Boolean);
-                    if (courseIds.length > 0) {
-                        socketManager.joinCourses(courseIds, userId);
-                        console.log(`✅ Joined ${courseIds.length} course rooms for live updates`);
-                    }
-                }
-            }).catch(err => console.error("Failed to fetch courses for socket connection:", err));
-        });
-
-        // Cleanup on unmount
         return () => {
-            socketManager.removeAllListeners("assignment:created");
-            socketManager.removeAllListeners("assignment:updated");
-            socketManager.removeAllListeners("assignment:deleted");
+            socketConnected.current = false;
+            disconnectAssignmentSocket();
         };
-    }, []);
+    }, [initialLoading, enrolledCourseIds]);
 
     // ─── Filter assignments ────────────────────────────────────────────
     const getFilteredAssignments = useCallback(() => {
         let filtered = [...assignments];
-        
+
         if (filter !== 'all') {
             filtered = filtered.filter(a => a.submissionStatus === filter);
         }
@@ -169,9 +160,9 @@ const Assignments = () => {
 
     const formatDate = (date) => {
         if (!date) return 'N/A';
-        return new Date(date).toLocaleDateString('en-IN', { 
-            day: 'numeric', 
-            month: 'short', 
+        return new Date(date).toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
             year: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
@@ -181,7 +172,7 @@ const Assignments = () => {
     // ─── Render ────────────────────────────────────────────────────────
     return (
         <div className='h-full w-full bg-white rounded-lg overflow-hidden flex flex-col'>
-            
+
             {/* Header */}
             <div className='sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 z-10'>
                 <div className='flex items-center justify-between mb-4'>
@@ -212,14 +203,14 @@ const Assignments = () => {
                         <MdError className='w-5 h-5 text-red-600 mt-0.5 shrink-0' />
                         <div className='flex-1 text-sm text-red-700'>
                             <p className='font-medium'>{error}</p>
-                            <button 
+                            <button
                                 onClick={() => fetchAssignments(true)}
                                 className='text-red-600 hover:text-red-800 font-medium mt-1'
                             >
                                 Try Again →
                             </button>
                         </div>
-                        <button 
+                        <button
                             onClick={() => setError(null)}
                             className='text-red-400 hover:text-red-600 shrink-0'
                         >
@@ -237,11 +228,10 @@ const Assignments = () => {
                                 <button
                                     key={f}
                                     onClick={() => setFilter(f)}
-                                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                                        filter === f
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
+                                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${filter === f
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        }`}
                                 >
                                     {f.charAt(0).toUpperCase() + f.slice(1)}
                                 </button>
@@ -263,7 +253,7 @@ const Assignments = () => {
 
             {/* Content */}
             <div className='flex-1 p-4 sm:p-6 overflow-y-auto'>
-                
+
                 {/* Loading State */}
                 {initialLoading && (
                     <div className='space-y-3'>
@@ -281,8 +271,8 @@ const Assignments = () => {
                         </div>
                         <h3 className='text-lg font-semibold text-gray-900 mb-1'>No assignments found</h3>
                         <p className='text-sm text-gray-600'>
-                            {filter === 'all' 
-                                ? 'No assignments have been assigned yet' 
+                            {filter === 'all'
+                                ? 'No assignments have been assigned yet'
                                 : `No ${filter} assignments in this filter`
                             }
                         </p>
@@ -298,7 +288,7 @@ const Assignments = () => {
                             const course = assignment.course?.title || assignment.courseId?.title || 'Course';
 
                             return (
-                                <div 
+                                <div
                                     key={assignment._id}
                                     className='bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-blue-300 transition-all group'
                                 >
