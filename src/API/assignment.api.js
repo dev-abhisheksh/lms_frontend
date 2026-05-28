@@ -1,5 +1,9 @@
 import { API } from "./axiosInstance.api.js";
 
+// Get all assignments for the current student (across all enrolled courses)
+export const getAssignments = () =>
+  API.get(`/assignments`);
+
 // Get all assignments for a course
 export const getAssignmentsByCourse = (courseId) =>
   API.get(`/assignments/assignments/${courseId}`);
