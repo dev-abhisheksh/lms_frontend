@@ -1,47 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { myCourses } from "../API/course.api";
-import { connectTestSocket, disconnectTestSocket } from "../socket/test.socket";
-import { connectAssignmentSocket, disconnectAssignmentSocket } from "../socket/assignment.socket";
-import { useNotifications } from "../contexts/NotificationContext";
 
 const Grids = () => {
     const [myCoursez, setMyCoursez] = useState([])
     const [loading, setLoading] = useState(true)
-    const { addNotification } = useNotifications();
 
     useEffect(() => {
         const loadCourses = async () => {
             try {
                 const res = await myCourses();
-                const courses = res.data.courses;
-                setMyCoursez(courses);
-
-                if (courses.length > 0) {
-                    const courseIds = courses.map(c => c.course._id);
-                    
-                    // Listen for tests
-                    connectTestSocket(courseIds, {
-                        onPublished: (data) => {
-                            addNotification({
-                                type: 'test',
-                                message: data.message,
-                                data: data.test
-                            });
-                        }
-                    });
-
-                    // Listen for assignments
-                    connectAssignmentSocket(courseIds, {
-                        onCreated: (data) => {
-                            addNotification({
-                                type: 'assignment',
-                                message: `New assignment: ${data.title}`,
-                                data: data
-                            });
-                        }
-                    });
-                }
+                setMyCoursez(res.data.courses);
             } catch (error) {
                 console.error(
                     "FETCH COURSES ERROR:",
@@ -53,11 +22,6 @@ const Grids = () => {
         };
 
         loadCourses();
-
-        return () => {
-            disconnectTestSocket();
-            disconnectAssignmentSocket();
-        };
     }, []);
 
     return (

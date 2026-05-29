@@ -2,16 +2,17 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { myCourses } from "../../API/course.api";
 import { getTestsByCourse, getMyTestSubmissions } from "../../API/test.api";
-import { 
-    MdQuiz, 
-    MdAccessTime, 
-    MdGrade, 
-    MdCheckCircle, 
-    MdPlayArrow, 
+import {
+    MdQuiz,
+    MdAccessTime,
+    MdGrade,
+    MdCheckCircle,
+    MdPlayArrow,
     MdMenuBook,
     MdCalendarToday,
     MdOutlineInfo
 } from "react-icons/md";
+import { connectTestSocket, disconnectTestSocket } from "../../socket/test.socket";
 
 const StudentTests = () => {
     const navigate = useNavigate();
@@ -29,7 +30,7 @@ const StudentTests = () => {
                     myCourses(),
                     getMyTestSubmissions()
                 ]);
-                
+
                 const enrolledCourses = coursesRes.data.courses || [];
                 setCourses(enrolledCourses);
                 setSubmissions(subsRes.data.submissions || []);
@@ -39,6 +40,27 @@ const StudentTests = () => {
                 const testsRes = await Promise.all(testPromises);
                 const allTests = testsRes.flatMap(res => res.data.tests || []);
                 setTests(allTests);
+
+                const courseIds = enrolledCourses.map(c => c.course._id);
+                connectTestSocket(courseIds, {
+                    onPublished: (data) => {
+                        setTests(prev => {
+                            const exists = prev.find(t => t._id === data.test._id);
+                            if (exists) return prev;
+                            return [data.test, ...prev];
+                        });
+                    },
+                    onUnpublished: (data) => {
+                        setTests(prev => prev.filter(t => t._id !== data.testId));
+                    },
+                    onUpdated: (data) => {
+                        setTests(prev => prev.map(t => t._id === data.test._id ? data.test : t));
+                    },
+                    onDeleted: (data) => {
+                        setTests(prev => prev.filter(t => t._id !== data.testId));
+                    }
+                });
+
             } catch (error) {
                 console.error("Error loading student tests:", error);
             } finally {
@@ -47,10 +69,11 @@ const StudentTests = () => {
         };
 
         loadInitialData();
+        return () => disconnectTestSocket();
     }, []);
 
-    const filteredTests = selectedCourse === "all" 
-        ? tests 
+    const filteredTests = selectedCourse === "all"
+        ? tests
         : tests.filter(t => t.course === selectedCourse);
 
     const getTestStatus = (testId) => {
@@ -82,7 +105,7 @@ const StudentTests = () => {
 
                 <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
                     <MdMenuBook className="text-gray-400 ml-2" />
-                    <select 
+                    <select
                         value={selectedCourse}
                         onChange={(e) => setSelectedCourse(e.target.value)}
                         className="bg-transparent text-sm font-bold text-gray-700 focus:outline-none pr-4"
@@ -108,8 +131,8 @@ const StudentTests = () => {
                 <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
                     <p className="text-gray-400 text-xs font-black uppercase tracking-widest mb-2">Average Score</p>
                     <p className="text-4xl font-black text-gray-900">
-                        {submissions.length > 0 
-                            ? Math.round((submissions.reduce((acc, curr) => acc + (curr.score / curr.totalMarks), 0) / submissions.length) * 100) 
+                        {submissions.length > 0
+                            ? Math.round((submissions.reduce((acc, curr) => acc + (curr.score / curr.totalMarks), 0) / submissions.length) * 100)
                             : 0}%
                     </p>
                 </div>
@@ -165,7 +188,7 @@ const StudentTests = () => {
                                             <span className="text-xs font-black uppercase tracking-widest">{status.score}/{status.total}</span>
                                         </div>
                                     ) : (
-                                        <button 
+                                        <button
                                             onClick={() => navigate(`/student/take-test/${test._id}`)}
                                             className="px-6 py-2 bg-gray-900 text-white rounded-xl hover:bg-indigo-600 transition-all font-black text-xs uppercase tracking-widest flex items-center gap-2 group/btn"
                                         >
