@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API_BASE_URL = "https://lms-67ch.onrender.com/api/v1";
+const API_BASE_URL = "http://localhost:4000/api/v1";
+
+// https://lms-67ch.onrender.com
 
 const getToken = () => localStorage.getItem("accessToken");
 
