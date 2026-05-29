@@ -23,6 +23,7 @@ const Sidebar = () => {
   const menu = [
     { id: "courses", label: "Courses", icon: MdOutlineDashboard, path: "/" },
     { id: "assignments", label: "Assignments", icon: MdOutlineAssignment, path: "/assignments" },
+    { id: "submissions", label: "Submissions", icon: MdOutlineUploadFile, path: "/submissions" },
     { id: "ai", label: "AI Assistant", icon: MdOutlineSmartToy, path: "/ai" },
     { id: "profile", label: "User Profile", icon: FaRegUser, path: "/profile" },
   ];

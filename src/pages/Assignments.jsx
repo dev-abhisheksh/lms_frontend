@@ -3,6 +3,8 @@ import { getAssignments } from '../API/assignment.api';
 import { myCourses } from '../API/course.api';
 import { MdAssignment, MdCalendarToday, MdCheckCircle, MdPending, MdGrade, MdDownload, MdRefresh, MdError, MdClose } from 'react-icons/md';
 import { connectAssignmentSocket, disconnectAssignmentSocket } from '../socket/assignment.socket';
+import { useNavigate } from 'react-router-dom';
+import SubmissionModal from './StudentPages/SubmissionModal';
 
 const Assignments = () => {
     const [assignments, setAssignments] = useState([]);
@@ -13,6 +15,10 @@ const Assignments = () => {
     const [filter, setFilter] = useState('all'); // all, pending, submitted, graded
     const [sortBy, setSortBy] = useState('dueDate'); // dueDate, title
     const socketConnected = useRef(false);
+    
+    const navigate = useNavigate();
+    const [selectedAssignment, setSelectedAssignment] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     // ─── Fetch enrolled course IDs (for socket rooms) ──────────────────
     useEffect(() => {
@@ -362,7 +368,17 @@ const Assignments = () => {
                                         </div>
 
                                         {/* Action Button */}
-                                        <button className='px-3 py-1.5 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shrink-0 whitespace-nowrap'>
+                                        <button 
+                                            onClick={() => {
+                                                if (assignment.submissionStatus === 'submitted' || assignment.submissionStatus === 'graded') {
+                                                    navigate('/submissions');
+                                                } else {
+                                                    setSelectedAssignment(assignment);
+                                                    setIsModalOpen(true);
+                                                }
+                                            }}
+                                            className='px-3 py-1.5 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shrink-0 whitespace-nowrap'
+                                        >
                                             {assignment.submissionStatus === 'submitted' || assignment.submissionStatus === 'graded' ? 'View' : 'Submit'}
                                         </button>
                                     </div>
@@ -373,6 +389,19 @@ const Assignments = () => {
                 )}
             </div>
 
+            <SubmissionModal
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setSelectedAssignment(null);
+                }}
+                assignment={selectedAssignment}
+                onSuccess={() => {
+                    setIsModalOpen(false);
+                    setSelectedAssignment(null);
+                    fetchAssignments(true);
+                }}
+            />
         </div>
     );
 };

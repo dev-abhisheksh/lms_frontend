@@ -7,6 +7,8 @@ import Courses from "./pages/Courses";
 import Universal from "./components/Universal";
 import CourseSingle from "./pages/CourseSingle";
 import Assignments from "./pages/Assignments";
+import StudentSubmissions from "./pages/StudentPages/StudentSubmissions";
+import SubmissionDetail from "./pages/StudentPages/SubmissionDetail";
 import Ai from "./pages/Ai";
 import Profile from "./pages/Profile";
 import Modules from "./pages/Modules";
@@ -66,6 +68,8 @@ const App = () => {
               <Route path="/" element={<Courses />} />
               <Route path="/course/:courseID" element={<CourseSingle />} />
               <Route path="/assignments" element={<Assignments />} />
+              <Route path="/submissions" element={<StudentSubmissions />} />
+              <Route path="/submissions/:submissionId" element={<SubmissionDetail />} />
               <Route path="/ai" element={<Ai />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/module/:moduleID" element={<Modules />} />
