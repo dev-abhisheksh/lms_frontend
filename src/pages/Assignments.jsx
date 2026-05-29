@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { getAssignments } from '../API/assignment.api';
 import { myCourses } from '../API/course.api';
+import { mySubmissions } from '../API/submission.api';
 import { MdAssignment, MdCalendarToday, MdCheckCircle, MdPending, MdGrade, MdDownload, MdRefresh, MdError, MdClose } from 'react-icons/md';
 import { connectAssignmentSocket, disconnectAssignmentSocket } from '../socket/assignment.socket';
 import { useNavigate } from 'react-router-dom';
@@ -44,11 +45,35 @@ const Assignments = () => {
             else setInitialLoading(true);
 
             setError(null);
-            const res = await getAssignments();
+            const [assignmentsRes, submissionsRes] = await Promise.all([
+                getAssignments(),
+                mySubmissions().catch(() => ({ data: { submissions: [] } }))
+            ]);
 
-            if (res.data?.assignments) {
-                setAssignments(res.data.assignments);
-                console.log(`✅ Loaded ${res.data.count || 0} assignments`);
+            if (assignmentsRes.data?.assignments) {
+                const fetchedAssignments = assignmentsRes.data.assignments;
+                const fetchedSubmissions = submissionsRes.data?.submissions || [];
+                
+                const submissionsMap = fetchedSubmissions.reduce((acc, sub) => {
+                    const assignId = sub.assignment?._id || sub.assignment;
+                    acc[assignId] = {
+                        status: sub.status,
+                        submissionId: sub._id,
+                        grade: sub.grade
+                    };
+                    return acc;
+                }, {});
+                
+                const mergedAssignments = fetchedAssignments.map(a => {
+                    const subInfo = submissionsMap[a._id];
+                    if (subInfo) {
+                        return { ...a, submissionStatus: subInfo.status, submissionId: subInfo.submissionId, grade: subInfo.grade };
+                    }
+                    return { ...a, submissionStatus: 'pending' };
+                });
+
+                setAssignments(mergedAssignments);
+                console.log(`✅ Loaded ${assignmentsRes.data.count || 0} assignments`);
             } else {
                 setAssignments([]);
             }
@@ -147,10 +172,10 @@ const Assignments = () => {
         let color = 'bg-orange-100 text-orange-700';
         let icon = MdPending;
 
-        if (assignment.submissionStatus === 'submitted') {
-            color = 'bg-blue-100 text-blue-700';
+        if (assignment.submissionStatus === 'submitted' || assignment.submissionStatus === 'late') {
+            color = assignment.submissionStatus === 'late' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700';
             icon = MdCheckCircle;
-            status = 'Submitted';
+            status = assignment.submissionStatus === 'late' ? 'Late' : 'Submitted';
         } else if (assignment.submissionStatus === 'graded') {
             color = 'bg-green-100 text-green-700';
             icon = MdGrade;
@@ -370,8 +395,8 @@ const Assignments = () => {
                                         {/* Action Button */}
                                         <button 
                                             onClick={() => {
-                                                if (assignment.submissionStatus === 'submitted' || assignment.submissionStatus === 'graded') {
-                                                    navigate('/submissions');
+                                                if (assignment.submissionStatus === 'submitted' || assignment.submissionStatus === 'graded' || assignment.submissionStatus === 'late') {
+                                                    navigate(`/submissions/${assignment.submissionId}`);
                                                 } else {
                                                     setSelectedAssignment(assignment);
                                                     setIsModalOpen(true);
@@ -379,7 +404,7 @@ const Assignments = () => {
                                             }}
                                             className='px-3 py-1.5 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shrink-0 whitespace-nowrap'
                                         >
-                                            {assignment.submissionStatus === 'submitted' || assignment.submissionStatus === 'graded' ? 'View' : 'Submit'}
+                                            {assignment.submissionStatus === 'submitted' || assignment.submissionStatus === 'graded' || assignment.submissionStatus === 'late' ? 'View' : 'Submit'}
                                         </button>
                                     </div>
                                 </div>
