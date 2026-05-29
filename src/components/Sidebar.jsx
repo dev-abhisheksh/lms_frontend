@@ -21,7 +21,8 @@ const Sidebar = () => {
   }, []);
 
   const menu = [
-    { id: "courses", label: "Courses", icon: MdOutlineDashboard, path: "/" },
+    { id: "courses", label: "Courses", icon: MdOutlineDashboard, path: "/student" },
+    { id: "tests", label: "Tests & Quizzes", icon: MdSchool, path: "/student/tests" },
     { id: "assignments", label: "Assignments", icon: MdOutlineAssignment, path: "/assignments" },
     { id: "submissions", label: "Submissions", icon: MdOutlineUploadFile, path: "/submissions" },
     { id: "ai", label: "AI Assistant", icon: MdOutlineSmartToy, path: "/ai" },

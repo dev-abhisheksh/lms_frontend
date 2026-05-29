@@ -3,13 +3,14 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import Login from "./pages/Login";
 import Courses from "./pages/Courses";
-// import SingleCourse from "./components/Courses/SingleCourse";
 import Universal from "./components/Universal";
 import CourseSingle from "./pages/CourseSingle";
 import Assignments from "./pages/Assignments";
 import StudentSubmissions from "./pages/StudentPages/StudentSubmissions";
 import SubmissionDetail from "./pages/StudentPages/SubmissionDetail";
 import StudentAssignmentDetail from "./pages/StudentPages/StudentAssignmentDetail";
+import StudentTests from "./pages/StudentPages/StudentTests";
+import TakeTest from "./pages/StudentPages/TakeTest";
 import Ai from "./pages/Ai";
 import Profile from "./pages/Profile";
 import Modules from "./pages/Modules";
@@ -89,6 +90,7 @@ const App = () => {
           <Route element={<ProtectedRoutes allowedRoles={["student"]} />}>
             <Route element={<Universal />}>
               <Route path="/student" element={<Courses />} />
+              <Route path="/student/tests" element={<StudentTests />} />
               <Route path="/course/:courseID" element={<CourseSingle />} />
               <Route path="/assignments" element={<Assignments />} />
               <Route path="/assignments/:assignmentId" element={<StudentAssignmentDetail />} />
@@ -98,6 +100,7 @@ const App = () => {
               <Route path="/profile" element={<Profile />} />
               <Route path="/module/:moduleID" element={<Modules />} />
             </Route>
+            <Route path="/student/take-test/:testId" element={<TakeTest />} />
           </Route>
 
           <Route path="/login" element={<Login />} />

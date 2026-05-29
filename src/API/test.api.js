@@ -25,3 +25,16 @@ export const deleteTest = async (testId) => {
 export const togglePublishTest = async (testId) => {
     return await API.patch(`/tests/${testId}/publish`);
 };
+
+// Student APIs
+export const getTestById = async (testId) => {
+    return await API.get(`/tests/${testId}`);
+};
+
+export const submitTest = async (testId, answers) => {
+    return await API.post(`/tests/${testId}/submit`, { answers });
+};
+
+export const getMyTestSubmissions = async () => {
+    return await API.get("/tests/my-submissions");
+};

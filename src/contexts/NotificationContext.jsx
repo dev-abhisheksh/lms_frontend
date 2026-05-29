@@ -6,6 +6,7 @@ export const NotificationProvider = ({ children }) => {
   const [notificationsVisible, setNotificationsVisible] = useState(() => {
     return localStorage.getItem("notificationsVisible") !== "false";
   });
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
     localStorage.setItem("notificationsVisible", notificationsVisible);
@@ -15,8 +16,27 @@ export const NotificationProvider = ({ children }) => {
     setNotificationsVisible(prev => !prev);
   };
 
+  const addNotification = (notif) => {
+    setNotifications(prev => [
+      { id: Date.now(), ...notif, timestamp: new Date() },
+      ...prev
+    ].slice(0, 20)); // Keep last 20
+    setNotificationsVisible(true);
+  };
+
+  const removeNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
   return (
-    <NotificationContext.Provider value={{ notificationsVisible, setNotificationsVisible, toggleNotifications }}>
+    <NotificationContext.Provider value={{ 
+      notificationsVisible, 
+      setNotificationsVisible, 
+      toggleNotifications,
+      notifications,
+      addNotification,
+      removeNotification
+    }}>
       {children}
     </NotificationContext.Provider>
   );
