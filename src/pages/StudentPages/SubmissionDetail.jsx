@@ -128,6 +128,52 @@ const SubmissionDetail = () => {
                     
                     {/* Main Content (Left Column) */}
                     <div className="flex-1 space-y-6">
+                        
+                        {/* Assignment Instructions */}
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group">
+                            <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-3 bg-blue-50/50">
+                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                    <MdMenuBook className="w-5 h-5" />
+                                </div>
+                                <h3 className="font-bold text-gray-900 text-lg">Assignment Instructions</h3>
+                            </div>
+                            <div className="p-6">
+                                {assignment?.description ? (
+                                    <div className="prose prose-sm md:prose-base max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                        {assignment.description}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-4">
+                                        <p className="text-gray-400 italic">No specific instructions were provided.</p>
+                                    </div>
+                                )}
+
+                                {assignment?.attachments && assignment.attachments.length > 0 && (
+                                    <div className="mt-6 pt-6 border-t border-gray-100">
+                                        <h4 className="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wider">Reference Materials</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {assignment.attachments.map((file, idx) => (
+                                                <a 
+                                                    key={idx}
+                                                    href={file.url || file.secure_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all group/file"
+                                                >
+                                                    <div className="p-2 bg-gray-50 rounded-md group-hover/file:bg-blue-100 group-hover/file:text-blue-600 transition-colors shrink-0">
+                                                        <MdDownload className="w-4 h-4 text-gray-500 group-hover/file:text-blue-600" />
+                                                    </div>
+                                                    <span className="text-sm font-medium text-gray-700 truncate group-hover/file:text-blue-700">
+                                                        {file.original_filename || `Material ${idx + 1}`}
+                                                    </span>
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         {/* Text Answer */}
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group">
                             <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-3 bg-gray-50/50">
