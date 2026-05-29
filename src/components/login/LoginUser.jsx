@@ -24,6 +24,8 @@ const LoginUser = () => {
         navigate("/admin");
       } else if (user.role === "teacher") {
         navigate("/teacher");
+      } else if (user.role === "student") {
+        navigate("/student");
       } else {
         navigate("/");
       }

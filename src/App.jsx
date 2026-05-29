@@ -34,12 +34,28 @@ import TeacherNotes from "./pages/TeacherSubPages/TeacherNotes";
 import TeacherTests from "./pages/TeacherSubPages/TeacherTests";
 
 
+const RootRedirect = () => {
+  const role = localStorage.getItem("role");
+  const token = localStorage.getItem("accessToken");
+
+  if (!token) return <Navigate to="/login" replace />;
+
+  if (role === "admin" || role === "manager") return <Navigate to="/admin" replace />;
+  if (role === "teacher") return <Navigate to="/teacher" replace />;
+  if (role === "student") return <Navigate to="/student" replace />;
+
+  return <Navigate to="/login" replace />;
+};
+
 const App = () => {
   return (
     <BrowserRouter>
       <NotificationProvider>
         <div className="h-screen w-full bg-[#D7D7E3]">
         <Routes>
+          {/* Root Redirect */}
+          <Route path="/" element={<RootRedirect />} />
+
           {/* Admin Routes */}
           <Route element={<ProtectedRoutes allowedRoles={["admin", "manager"]} />}>
             <Route element={<AdminUniversal />}>
@@ -69,10 +85,10 @@ const App = () => {
             </Route>
           </Route>
 
-          {/* Common Protected Routes (Student, Teacher, Admin, Manager) */}
-          <Route element={<ProtectedRoutes allowedRoles={["student", "teacher", "admin", "manager"]} />}>
+          {/* Student Dashboard Routes */}
+          <Route element={<ProtectedRoutes allowedRoles={["student"]} />}>
             <Route element={<Universal />}>
-              <Route path="/" element={<Courses />} />
+              <Route path="/student" element={<Courses />} />
               <Route path="/course/:courseID" element={<CourseSingle />} />
               <Route path="/assignments" element={<Assignments />} />
               <Route path="/assignments/:assignmentId" element={<StudentAssignmentDetail />} />
