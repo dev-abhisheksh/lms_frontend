@@ -20,8 +20,10 @@ const LoginUser = () => {
       localStorage.setItem("role", user.role);
 
       // Role-based redirect
-      if (user.role === "admin") {
+      if (user.role === "admin" || user.role === "manager") {
         navigate("/admin");
+      } else if (user.role === "teacher") {
+        navigate("/teacher");
       } else {
         navigate("/");
       }

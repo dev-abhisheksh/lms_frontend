@@ -40,9 +40,9 @@ const App = () => {
       <NotificationProvider>
         <div className="h-screen w-full bg-[#D7D7E3]">
         <Routes>
-          <Route element={<ProtectedRoutes />}>
-
-            <Route element={<AdminUniversal/>}>
+          {/* Admin Routes */}
+          <Route element={<ProtectedRoutes allowedRoles={["admin", "manager"]} />}>
+            <Route element={<AdminUniversal />}>
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/departments" element={<AdminDepartments />} />
               <Route path="/admin/courses" element={<AdminCourses />} />
@@ -52,7 +52,10 @@ const App = () => {
               <Route path="/admin/users" element={<AdminUsersManagement />} />
               <Route path="/admin/add-user" element={<AdminAddUser />} />
             </Route>
+          </Route>
 
+          {/* Teacher Routes */}
+          <Route element={<ProtectedRoutes allowedRoles={["teacher"]} />}>
             <Route element={<TeacherUniversal />}>
               <Route path="/teacher" element={<TeacherDashboard />} />
               <Route path="/teacher/courses" element={<TeacherCourses />} />
@@ -64,7 +67,10 @@ const App = () => {
               <Route path="/teacher/notes" element={<TeacherNotes />} />
               <Route path="/teacher/tests" element={<TeacherTests />} />
             </Route>
+          </Route>
 
+          {/* Common Protected Routes (Student, Teacher, Admin, Manager) */}
+          <Route element={<ProtectedRoutes allowedRoles={["student", "teacher", "admin", "manager"]} />}>
             <Route element={<Universal />}>
               <Route path="/" element={<Courses />} />
               <Route path="/course/:courseID" element={<CourseSingle />} />
@@ -79,7 +85,6 @@ const App = () => {
           </Route>
 
           <Route path="/login" element={<Login />} />
-
         </Routes>
         </div>
       </NotificationProvider>
