@@ -12,7 +12,9 @@ const YEAR_COLORS = {
   TY: "bg-purple-100 text-purple-800",
 };
 
-const YEAR_NEXT = { FY: "SY", SY: "TY", TY: null };
+const getYearColor = (year) => YEAR_COLORS[year] || "bg-gray-100 text-gray-800";
+
+const YEAR_NEXT_DEFAULT = { FY: "SY", SY: "TY", TY: "" };
 
 // ── component ─────────────────────────────────────────────────────────────────
 
@@ -26,6 +28,7 @@ const AdminBatches = () => {
 
   // ── Promote modal ──────────────────────────────────────────────────────────
   const [promoteModal, setPromoteModal] = useState(null);
+  const [targetYear, setTargetYear] = useState("");
   const [promoting, setPromoting] = useState(false);
 
   // ── Assign Courses modal ───────────────────────────────────────────────────
@@ -60,7 +63,11 @@ const AdminBatches = () => {
     .filter(b => b.department._id === activeDept?._id)
     .sort((a, b) => b.cohortYear - a.cohortYear);
 
-  // ── Promote ────────────────────────────────────────────────────────────────
+  const handleOpenPromote = (batch) => {
+    setPromoteModal(batch);
+    setTargetYear(YEAR_NEXT_DEFAULT[batch.year] || "");
+  };
+
   const confirmPromote = async () => {
     if (!promoteModal) return;
     setPromoting(true);
@@ -69,7 +76,7 @@ const AdminBatches = () => {
         promoteModal.department._id,
         promoteModal.cohortYear,
         promoteModal.year,
-        YEAR_NEXT[promoteModal.year]
+        targetYear || null
       );
       setSuccessMessage(res.message);
       const batchRes = await getBatches();
@@ -255,7 +262,7 @@ const AdminBatches = () => {
                                     <div className="text-xs font-mono text-purple-400 mt-0.5">{slug}</div>
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${YEAR_COLORS[batch.year] || "bg-gray-100 text-gray-800"}`}>
+                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getYearColor(batch.year)}`}>
                                       {batch.year}
                                     </span>
                                   </td>
@@ -270,17 +277,13 @@ const AdminBatches = () => {
                                       >
                                         Assign Courses
                                       </button>
-                                      {nextYear ? (
-                                        <button
-                                          onClick={() => setPromoteModal(batch)}
-                                          className="flex items-center gap-1 px-3 py-1 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition"
-                                        >
-                                          Promote → {nextYear}
-                                          <MdArrowForward className="w-3 h-3" />
-                                        </button>
-                                      ) : (
-                                        <span className="text-xs text-gray-400 font-medium">Graduated</span>
-                                      )}
+                                      <button
+                                        onClick={() => handleOpenPromote(batch)}
+                                        className="flex items-center gap-1 px-3 py-1 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition"
+                                      >
+                                        Promote / Update
+                                        <MdArrowForward className="w-3 h-3" />
+                                      </button>
                                     </div>
                                   </td>
                                 </tr>
@@ -306,7 +309,7 @@ const AdminBatches = () => {
                                   <h3 className="text-base font-bold text-gray-900">{batchId}</h3>
                                   <p className="text-xs text-gray-500 mt-0.5">{batch.studentCount} students</p>
                                 </div>
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${YEAR_COLORS[batch.year] || "bg-gray-100 text-gray-800"}`}>
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getYearColor(batch.year)}`}>
                                   {batch.year}
                                 </span>
                               </div>
@@ -314,11 +317,9 @@ const AdminBatches = () => {
                                 <button onClick={() => openAssign(batch)} className="flex-1 text-sm text-purple-600 font-medium py-2 px-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition">
                                   Assign Courses
                                 </button>
-                                {nextYear && (
-                                  <button onClick={() => setPromoteModal(batch)} className="flex-1 flex items-center justify-center gap-1 text-sm text-white font-medium py-2 px-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition">
-                                    Promote → {nextYear} <MdArrowForward className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
+                                <button onClick={() => handleOpenPromote(batch)} className="flex-1 flex items-center justify-center gap-1 text-sm text-white font-medium py-2 px-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition">
+                                  Promote / Update <MdArrowForward className="w-3.5 h-3.5" />
+                                </button>
                               </div>
                             </div>
                           );
@@ -338,18 +339,27 @@ const AdminBatches = () => {
       {promoteModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 z-60 relative">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Confirm Year Promotion</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Promote / Update Level</h3>
             <div className="mb-6 p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-600 mb-4">
-                You are about to promote <strong>{promoteModal.studentCount} students</strong> in batch <strong>{(promoteModal.department.code || promoteModal.department.name).toUpperCase()}-{promoteModal.cohortYear}</strong>:
+                You are about to update <strong>{promoteModal.studentCount} students</strong> in batch <strong>{(promoteModal.department.code || promoteModal.department.name).toUpperCase()}-{promoteModal.cohortYear}</strong>:
               </p>
-              <div className="flex items-center gap-3 justify-center mb-4">
-                <span className={`px-3 py-1 text-sm font-semibold rounded-full ${YEAR_COLORS[promoteModal.year]}`}>{promoteModal.year}</span>
-                <MdArrowForward className="w-5 h-5 text-gray-400" />
-                <span className={`px-3 py-1 text-sm font-semibold rounded-full ${YEAR_COLORS[YEAR_NEXT[promoteModal.year]]}`}>{YEAR_NEXT[promoteModal.year]}</span>
+              <div className="flex flex-col items-center gap-3 justify-center mb-4">
+                <div className="flex items-center gap-3">
+                  <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getYearColor(promoteModal.year)}`}>{promoteModal.year}</span>
+                  <MdArrowForward className="w-5 h-5 text-gray-400" />
+                  <input 
+                    type="text" 
+                    value={targetYear} 
+                    onChange={(e) => setTargetYear(e.target.value)}
+                    placeholder="Next Level (e.g. SY or 11)"
+                    className="px-3 py-1 text-sm border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none w-32 text-center font-semibold"
+                  />
+                </div>
+                <p className="text-xs text-gray-400">Leave target empty to mark as Graduated/Completed.</p>
               </div>
               <p className="text-sm text-red-600 font-medium text-center">
-                ⚠️ All {promoteModal.year} course enrollments will be removed for these students.
+                ⚠️ All current course enrollments will be removed for these students.
               </p>
             </div>
             <div className="flex gap-3">
@@ -357,7 +367,7 @@ const AdminBatches = () => {
                 Cancel
               </button>
               <button onClick={confirmPromote} disabled={promoting} className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium disabled:opacity-50">
-                {promoting ? "Promoting..." : "Confirm Promotion"}
+                {promoting ? "Updating..." : "Confirm Update"}
               </button>
             </div>
           </div>

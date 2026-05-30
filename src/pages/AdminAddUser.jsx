@@ -31,7 +31,8 @@ const AdminAddUser = () => {
     email: "",
     role: "student",
     department: "",
-    year: "FY",
+    year: "", // Now generic (e.g., 10 or FY)
+    section: "", // New field for schools (e.g., A, B)
     cohortYear: "",
   });
 
@@ -45,7 +46,6 @@ const AdminAddUser = () => {
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const years = ["FY", "SY", "TY"];
   const isStudent = form.role === "student";
 
   const generatedPassword = generatePassword(form.fullName, form.phone);
@@ -93,13 +93,14 @@ const AdminAddUser = () => {
         password: generatedPassword,
         role: form.role,
         department: form.department || undefined,
-        ...(isStudent && form.year ? { year: form.year } : {}),
+        ...(isStudent && form.year ? { year: form.year.trim() } : {}),
+        ...(isStudent && form.section ? { section: form.section.trim() } : {}),
         ...(isStudent && form.cohortYear ? { cohortYear: form.cohortYear } : {}),
       };
 
       await registerUser(payload);
       setSuccess(`✅ User created! Email: ${form.email.trim()} | Password: ${generatedPassword}`);
-      setForm({ fullName: "", phone: "", email: "", role: "student", department: "", year: "FY", cohortYear: "" });
+      setForm({ fullName: "", phone: "", email: "", role: "student", department: "", year: "", section: "", cohortYear: "" });
       setSelectedDept("");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to add user");
@@ -174,10 +175,18 @@ const AdminAddUser = () => {
               {/* YEAR — students only */}
               {isStudent && (
                 <div>
-                  <label className={labelCls}>Academic Year</label>
-                  <select name="year" value={form.year} onChange={handleChange} required className={inputCls}>
-                    {years.map((y) => <option key={y} value={y}>{y}</option>)}
-                  </select>
+                  <label className={labelCls}>Standard / Year</label>
+                  <input type="text" name="year" value={form.year} onChange={handleChange}
+                    required placeholder="e.g., 10 or FY" className={inputCls} />
+                </div>
+              )}
+
+              {/* SECTION — students only */}
+              {isStudent && (
+                <div>
+                  <label className={labelCls}>Section / Division</label>
+                  <input type="text" name="section" value={form.section} onChange={handleChange}
+                    placeholder="e.g., A or Div-1" className={inputCls} />
                 </div>
               )}
 

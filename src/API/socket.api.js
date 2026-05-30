@@ -66,6 +66,14 @@ class SocketManager {
     console.log(`📌 Joining ${courseIds.length} courses`);
   }
 
+  // ─── Join personal room for direct notifications ──────────────────
+  joinPersonal(userId) {
+    if (!this.socket || !userId) return;
+    
+    this.socket.emit("join-personal", userId);
+    console.log(`👤 Joining personal room: user-${userId}`);
+  }
+
   // ─── Leave a course room ──────────────────────────────────────────
   leaveCourse(courseId, userId) {
     if (!this.socket) return;

@@ -19,11 +19,9 @@ const AdminCourses = () => {
     description: "",
     courseCode: "",
     department: "",
-    year: "FY",
+    year: "", // Now generic (e.g., 10 or FY)
   });
   const [submitting, setSubmitting] = useState(false);
-
-  const years = ["FY", "SY", "TY"];
 
   // Fetch courses and departments on component mount
   useEffect(() => {
@@ -194,7 +192,7 @@ const AdminCourses = () => {
                 description: "",
                 courseCode: "",
                 department: "",
-                year: "FY",
+                year: "",
               });
               setShowForm(!showForm);
             }}
@@ -278,20 +276,17 @@ const AdminCourses = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Year *
+                  Standard / Year *
                 </label>
-                <select
+                <input
+                  type="text"
                   name="year"
+                  placeholder="e.g., 10 or FY"
                   value={formData.year}
                   onChange={handleFormChange}
+                  required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {years.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
 
@@ -382,7 +377,7 @@ const AdminCourses = () => {
                       Department
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Year
+                      Standard / Year
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
@@ -500,7 +495,7 @@ const AdminCourses = () => {
                     </div>
 
                     <div className="text-xs text-gray-600 mb-3">
-                      <span className="font-medium">Year:</span>
+                      <span className="font-medium">Standard / Year:</span>
                       <span className="ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
                         {course.year || "N/A"}
                       </span>

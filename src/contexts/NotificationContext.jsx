@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect } from 'react';
 import { myCourses } from '../API/course.api';
 import { connectTestSocket, disconnectTestSocket } from '../socket/test.socket';
 import { connectAssignmentSocket, disconnectAssignmentSocket } from '../socket/assignment.socket';
+import { socketManager } from '../API/socket.api';
 
 export const NotificationContext = createContext();
 
@@ -18,55 +19,74 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     const role = localStorage.getItem("role");
     const token = localStorage.getItem("accessToken");
+    const userString = localStorage.getItem("user");
+    const user = userString ? JSON.parse(userString) : null;
 
-    if (role === "student" && token) {
+    if (token) {
       const initSockets = async () => {
         try {
-          const res = await myCourses();
-          const courses = res.data.courses || [];
-          if (courses.length > 0) {
-            const courseIds = courses.map(c => c.course._id);
+          // 1. Join Personal Room for private notifications
+          if (user?._id) {
+            socketManager.connect(token);
+            socketManager.joinPersonal(user._id);
             
-            connectTestSocket(courseIds, {
-              onPublished: (data) => {
-                addNotification({
-                  type: 'test',
-                  message: data.message,
-                  data: data.test
-                });
-              },
-              onUnpublished: (data) => {
-                addNotification({
-                  type: 'test',
-                  message: data.message,
-                  data: { _id: data.testId }
-                });
-              },
-              onUpdated: (data) => {
-                addNotification({
-                  type: 'test',
-                  message: data.message,
-                  data: data.test
-                });
-              },
-              onDeleted: (data) => {
-                addNotification({
-                  type: 'test',
-                  message: data.message,
-                  data: { _id: data.testId }
-                });
-              }
+            socketManager.on("notification:new", (data) => {
+              addNotification({
+                type: 'alert',
+                title: data.title,
+                message: data.message,
+                link: data.link
+              });
             });
+          }
 
-            connectAssignmentSocket(courseIds, {
-              onCreated: (data) => {
-                addNotification({
-                  type: 'assignment',
-                  message: `New assignment: ${data.title}`,
-                  data: data
-                });
-              }
-            });
+          if (role === "student") {
+            const res = await myCourses();
+            const courses = res.data.courses || [];
+            if (courses.length > 0) {
+              const courseIds = courses.map(c => c.course._id);
+              
+              connectTestSocket(courseIds, {
+                onPublished: (data) => {
+                  addNotification({
+                    type: 'test',
+                    message: data.message,
+                    data: data.test
+                  });
+                },
+                onUnpublished: (data) => {
+                  addNotification({
+                    type: 'test',
+                    message: data.message,
+                    data: { _id: data.testId }
+                  });
+                },
+                onUpdated: (data) => {
+                  addNotification({
+                    type: 'test',
+                    message: data.message,
+                    data: data.test
+                  });
+                },
+                onDeleted: (data) => {
+                  addNotification({
+                    type: 'test',
+                    message: data.message,
+                    data: { _id: data.testId }
+                  });
+                }
+              });
+
+              connectAssignmentSocket(courseIds, {
+                onCreated: (data) => {
+                  addNotification({
+                    type: 'assignment',
+                    message: `New assignment: ${data.title}`,
+                    data: data
+                  });
+                }
+              });
+            }
           }
         } catch (err) {
           console.error("Socket Init Error:", err);
@@ -78,6 +98,7 @@ export const NotificationProvider = ({ children }) => {
     return () => {
       disconnectTestSocket();
       disconnectAssignmentSocket();
+      socketManager.disconnect();
     };
   }, []);
 

@@ -137,7 +137,7 @@ const AdminDepartments = () => {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <MdOutlineSchool className="w-8 h-8 text-indigo-600" />
-              <h1 className="text-3xl font-bold text-gray-900">Departments</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Departments / Groups</h1>
             </div>
             <p className="text-sm text-gray-500 ml-11">
               Create and manage departments, assign managers, and toggle active status.
