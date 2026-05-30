@@ -254,7 +254,7 @@ const AdminBatches = () => {
                             deptBatches.map((batch, idx) => {
                               const batchId = `${(batch.department.code || batch.department.name).toUpperCase()}-${batch.cohortYear}`;
                               const slug = `${batchId}-${batch.year}`;
-                              const nextYear = YEAR_NEXT[batch.year];
+                              const nextYear = YEAR_NEXT_DEFAULT[batch.year];
                               return (
                                 <tr key={idx} className="hover:bg-gray-50 transition-colors">
                                   <td className="px-6 py-4 whitespace-nowrap">
@@ -301,7 +301,7 @@ const AdminBatches = () => {
                       ) : (
                         deptBatches.map((batch, idx) => {
                           const batchId = `${(batch.department.code || batch.department.name).toUpperCase()}-${batch.cohortYear}`;
-                          const nextYear = YEAR_NEXT[batch.year];
+                          const nextYear = YEAR_NEXT_DEFAULT[batch.year];
                           return (
                             <div key={idx} className="p-4">
                               <div className="flex items-start justify-between mb-3">
