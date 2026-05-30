@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
   MdAdd,
@@ -153,7 +154,7 @@ const TeacherAssignments = () => {
     e.preventDefault();
 
     if (!selectedCourse) {
-      alert("Please select a course");
+      toast.error("Please select a course");
       return;
     }
 
@@ -172,8 +173,10 @@ const TeacherAssignments = () => {
     try {
       if (editingAssignmentId) {
         await updateAssignment(editingAssignmentId, form);
+        toast.success("Assignment updated successfully!");
       } else {
         await createAssignment(selectedCourse, form);
+        toast.success("Assignment created successfully!");
       }
 
       resetForm();
@@ -185,7 +188,7 @@ const TeacherAssignments = () => {
     } catch (error) {
       console.error("Error saving assignment:", error);
 
-      alert(
+      toast.error(
         "Failed to save assignment: " +
         (error.response?.data?.message || error.message)
       );
@@ -240,10 +243,11 @@ const TeacherAssignments = () => {
       setAssignments((prev) =>
         prev.filter((a) => a._id !== assignmentId)
       );
+      toast.success("Assignment deleted successfully!");
     } catch (error) {
       console.error("Error deleting assignment:", error);
 
-      alert(
+      toast.error(
         "Failed to delete: " +
         (error.response?.data?.message || error.message)
       );
@@ -274,10 +278,11 @@ const TeacherAssignments = () => {
             : a
         )
       );
+      toast.success(`Assignment ${updated.isPublished ? "published" : "unpublished"} successfully!`);
     } catch (error) {
       console.error("Error toggling assignment status:", error);
 
-      alert(
+      toast.error(
         "Failed to toggle: " +
         (error.response?.data?.message || error.message)
       );

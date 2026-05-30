@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import toast from "react-hot-toast";
 import { useParams, useNavigate } from "react-router-dom";
 import { getTestById, submitTest } from "../../API/test.api";
 import { 
@@ -66,7 +67,7 @@ const TakeTest = () => {
     };
 
     const handleAutoSubmit = () => {
-        alert("Time is up! Your test will be submitted automatically.");
+        toast("Time is up! Your test will be submitted automatically.", { icon: "⏰" });
         handleSubmit();
     };
 
@@ -77,10 +78,11 @@ const TakeTest = () => {
 
         try {
             await submitTest(testId, answers);
+            toast.success("Test submitted successfully!");
             navigate("/student/tests");
         } catch (error) {
             console.error("Submission error:", error);
-            alert("Failed to submit test. Please try again.");
+            toast.error("Failed to submit test. Please try again.");
             setIsSubmitting(false);
         }
     };

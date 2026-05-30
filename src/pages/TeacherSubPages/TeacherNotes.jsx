@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
   MdAdd,
@@ -94,7 +95,7 @@ const TeacherNotes = () => {
   const handleSubmitNote = async (e) => {
     e.preventDefault();
     if (!selectedCourse) {
-      alert("Please select a course");
+      toast.error("Please select a course");
       return;
     }
 
@@ -111,10 +112,10 @@ const TeacherNotes = () => {
     try {
       if (editingNoteId) {
         await updateNote(editingNoteId, form);
-        alert("Note updated successfully!");
+        toast.success("Note updated successfully!");
       } else {
         await createNote(selectedCourse, form);
-        alert("Note created successfully!");
+        toast.success("Note created successfully!");
       }
 
       handleCancelForm();
@@ -122,7 +123,7 @@ const TeacherNotes = () => {
       setNotes(response.data.notes || []);
     } catch (error) {
       console.error("Error saving note:", error);
-      alert("Failed to save note");
+      toast.error("Failed to save note");
     } finally {
       setSaving(false);
     }
@@ -147,9 +148,10 @@ const TeacherNotes = () => {
       try {
         await deleteNote(noteId);
         setNotes((prev) => prev.filter((n) => n._id !== noteId));
-        alert("Note deleted successfully!");
+        toast.success("Note deleted successfully!");
       } catch (error) {
         console.error("Error deleting note", error);
+        toast.error("Failed to delete note");
       }
     }
   };

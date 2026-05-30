@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { getAllUsers } from "../API/auth.api";
 import { Departments } from "../API/department.api";
 import { getMyEnrollments } from "../API/enrollment.api";
@@ -104,7 +105,7 @@ export const AdminUsersManagement = () => {
   // Copy user ID to clipboard
   const copyUserId = (userId) => {
     navigator.clipboard.writeText(userId);
-    alert("User ID copied to clipboard!");
+    toast.success("User ID copied to clipboard!");
   };
 
   // Get role badge color

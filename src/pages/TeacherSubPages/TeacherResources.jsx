@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
   MdAdd,
@@ -113,7 +114,7 @@ const TeacherResources = () => {
   const handleSubmitResource = async (e) => {
     e.preventDefault();
     if (!selectedCourse) {
-      alert("Please select a course");
+      toast.error("Please select a course");
       return;
     }
 
@@ -133,7 +134,7 @@ const TeacherResources = () => {
       };
 
       setResources((prev) => [newResource, ...prev]);
-      alert("Resource uploaded successfully!");
+      toast.success("Resource uploaded successfully!");
       setFormData({
         title: "",
         description: "",
@@ -143,7 +144,7 @@ const TeacherResources = () => {
       setShowForm(false);
     } catch (error) {
       console.error("Error uploading resource:", error);
-      alert("Failed to upload resource");
+      toast.error("Failed to upload resource");
     } finally {
       setUploading(false);
     }
@@ -153,7 +154,7 @@ const TeacherResources = () => {
   const handleDeleteResource = (resourceId) => {
     if (window.confirm("Are you sure you want to delete this resource?")) {
       setResources((prev) => prev.filter((r) => r._id !== resourceId));
-      alert("Resource deleted successfully!");
+      toast.success("Resource deleted successfully!");
     }
   };
 

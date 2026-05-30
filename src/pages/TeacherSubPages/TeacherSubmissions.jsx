@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
   MdOutlineGrading,
@@ -161,25 +162,25 @@ const TeacherSubmissions = () => {
     if (!selectedSub) return;
 
     if (grade === "") {
-      alert("Please enter a grade");
+      toast.error("Please enter a grade");
       return;
     }
 
     const parsedGrade = parseFloat(grade);
     const maxMarks = selectedSub.assignment?.maxMarks || 100;
     if (isNaN(parsedGrade) || parsedGrade < 0 || parsedGrade > maxMarks) {
-      alert(`Please enter a valid grade between 0 and ${maxMarks}`);
+      toast.error(`Please enter a valid grade between 0 and ${maxMarks}`);
       return;
     }
 
     setSubmittingGrade(true);
     try {
       await gradeSubmission(selectedSub._id, parsedGrade, feedback);
-      alert("Submission graded successfully!");
+      toast.success("Submission graded successfully!");
       await loadSubmissions();
     } catch (error) {
       console.error("Error grading submission:", error);
-      alert("Failed to grade submission: " + (error.response?.data?.message || error.message));
+      toast.error("Failed to grade submission: " + (error.response?.data?.message || error.message));
     } finally {
       setSubmittingGrade(false);
     }

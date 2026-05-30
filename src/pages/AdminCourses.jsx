@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { getAllCourses, createCourse, updateCourse, togglePublishCourse } from "../API/course.api";
 import { Departments } from "../API/department.api";
 
@@ -60,7 +61,7 @@ const AdminCourses = () => {
     e.preventDefault();
 
     if (!formData.title.trim() || !formData.courseCode.trim() || !formData.department || !formData.year) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -107,7 +108,7 @@ const AdminCourses = () => {
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
       console.error("Failed to save course:", err);
-      alert(
+      toast.error(
         err.response?.data?.message || "Failed to save course. Please try again."
       );
     } finally {
@@ -155,7 +156,7 @@ const AdminCourses = () => {
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
       console.error("Failed to update course status:", err);
-      alert(
+      toast.error(
         err.response?.data?.message ||
           "Failed to update course status. Please try again."
       );

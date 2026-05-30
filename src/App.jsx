@@ -35,6 +35,9 @@ import TeacherNotes from "./pages/TeacherSubPages/TeacherNotes";
 import TeacherTests from "./pages/TeacherSubPages/TeacherTests";
 
 
+import { Toaster } from "react-hot-toast";
+
+
 const RootRedirect = () => {
   const role = localStorage.getItem("role");
   const token = localStorage.getItem("accessToken");
@@ -51,6 +54,7 @@ const RootRedirect = () => {
 const App = () => {
   return (
     <BrowserRouter>
+      <Toaster position="top-center" reverseOrder={false} />
       <NotificationProvider>
         <div className="h-screen w-full bg-[#D7D7E3]">
         <Routes>

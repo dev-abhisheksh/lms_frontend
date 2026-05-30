@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import toast from "react-hot-toast";
 import { getAllCourses } from "../API/course.api";
 import {
   enrollUserInCourse,
@@ -173,7 +174,7 @@ const AdminEnrollments = () => {
   // ── Assign teacher ────────────────────────────────────────────────
   const handleAssignTeacher = async (e) => {
     e.preventDefault();
-    if (!selectedTeacherId) return alert("Select a teacher first.");
+    if (!selectedTeacherId) return toast.error("Select a teacher first.");
     try {
       setEnrolling(true);
       await enrollUserInCourse(selectedCourse._id, {
@@ -186,7 +187,7 @@ const AdminEnrollments = () => {
       setShowAssignForm(false);
       await refreshEnrollments();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to assign teacher.");
+      toast.error(err.response?.data?.message || "Failed to assign teacher.");
     } finally {
       setEnrolling(false);
     }
@@ -200,7 +201,7 @@ const AdminEnrollments = () => {
       flash(`${userName} removed successfully.`);
       await refreshEnrollments();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to remove user.");
+      toast.error(err.response?.data?.message || "Failed to remove user.");
     }
   };
 

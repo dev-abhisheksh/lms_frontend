@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
   MdAdd,
@@ -168,22 +169,22 @@ const TeacherTests = () => {
   /* ── submit ── */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedCourse) return alert("Select a course first");
+    if (!selectedCourse) return toast.error("Select a course first");
     setSaving(true);
     try {
       if (editingTestId) {
         await updateTest(editingTestId, formData);
-        alert("Test updated!");
+        toast.success("Test updated!");
       } else {
         await createTest(selectedCourse, formData);
-        alert("Test created!");
+        toast.success("Test created!");
       }
       resetForm();
       const res = await getTestsByCourse(selectedCourse);
       setTests(res.data.tests || []);
     } catch (err) {
       console.error("Save error:", err);
-      alert("Failed to save test: " + (err.response?.data?.message || err.message));
+      toast.error("Failed to save test: " + (err.response?.data?.message || err.message));
     } finally {
       setSaving(false);
     }
@@ -222,7 +223,7 @@ const TeacherTests = () => {
       await deleteTest(id);
       setTests((p) => p.filter((t) => t._id !== id));
     } catch (e) {
-      alert("Delete failed");
+      toast.error("Delete failed");
     }
   };
 
