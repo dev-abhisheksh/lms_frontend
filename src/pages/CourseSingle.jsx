@@ -1,161 +1,234 @@
 import React, { useEffect, useState } from 'react'
 import { getCourseById } from '../API/course.api'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 import { allModules } from '../API/module.api'
+import { getAssignmentsByCourse } from '../API/assignment.api'
+import { getTestsByCourse } from '../API/test.api'
+import { MdAssignment, MdQuiz, MdMenuBook, MdDescription, MdChevronRight, MdAccessTime, MdGrade } from 'react-icons/md'
 
 const CourseSingle = () => {
     const { courseID } = useParams()
+    const navigate = useNavigate()
     const [course, setCourse] = useState("")
     const [modules, setModules] = useState([])
+    const [assignments, setAssignments] = useState([])
+    const [tests, setTests] = useState([])
     const [activeTab, setActiveTab] = useState('description')
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const fetchCourseDetails = async () => {
+        const fetchCourseData = async () => {
             try {
-                const res = await getCourseById(courseID)
-                setCourse(res.data.course)
-                console.log(res.data.course)
-            } catch (error) {
-                console.error("Failed to fetch course data", error)
-            }
-        }
-        fetchCourseDetails()
-    }, [])
+                setLoading(true)
+                const [courseRes, modulesRes, assignmentsRes, testsRes] = await Promise.all([
+                    getCourseById(courseID),
+                    allModules(courseID).catch(() => ({ data: { modules: [] } })),
+                    getAssignmentsByCourse(courseID).catch(() => ({ data: { assignments: [] } })),
+                    getTestsByCourse(courseID).catch(() => ({ data: { tests: [] } }))
+                ]);
 
-    useEffect(() => {
-        const fetchAllModules = async () => {
-            try {
-                const res = await allModules(courseID)
-                console.log(res.data.modules)
-                // Handle case where API returns {message: 'No modules'} instead of array
-                if (Array.isArray(res.data.modules)) {
-                    setModules(res.data.modules)
-                } else {
-                    setModules([])
+                setCourse(courseRes.data.course);
+                
+                if (Array.isArray(modulesRes.data.modules)) {
+                    setModules(modulesRes.data.modules);
+                }
+                
+                if (Array.isArray(assignmentsRes.data.assignments)) {
+                    setAssignments(assignmentsRes.data.assignments);
+                }
+
+                if (Array.isArray(testsRes.data.tests)) {
+                    setTests(testsRes.data.tests);
                 }
             } catch (error) {
-                console.error("Failed to fetch modules", error)
-                setModules([])
+                console.error("Failed to fetch course data", error)
+            } finally {
+                setLoading(false)
             }
         }
-
-        fetchAllModules()
-    }, [])
+        fetchCourseData()
+    }, [courseID])
 
     // Converting Date into proper format
-    const dateString = course.createdAt
-    const date = new Date(dateString)
-
-    const formattedDate = date.toLocaleDateString('en-GB', {
+    const formattedDate = course.createdAt ? new Date(course.createdAt).toLocaleDateString('en-GB', {
         day: 'numeric',
         month: 'long',
         year: 'numeric'
-    });
+    }) : "";
 
-    const tabs = ["description", "modules"]
+    const tabs = ["description", "modules", "assignments", "tests"]
+
+    if (loading) {
+        return (
+            <div className="h-full w-full bg-white rounded-xl p-8 animate-pulse space-y-8">
+                <div className="h-32 bg-gray-100 rounded-2xl w-full"></div>
+                <div className="h-10 bg-gray-50 rounded-lg w-1/2"></div>
+                <div className="space-y-4">
+                    <div className="h-20 bg-gray-50 rounded-xl w-full"></div>
+                    <div className="h-20 bg-gray-50 rounded-xl w-full"></div>
+                </div>
+            </div>
+        )
+    }
 
     return (
-        <div className='h-full w-full bg-gray-50 rounded-xl p-3 sm:p-4 md:p-6 overflow-y-scroll scrollbar-hide flex flex-col gap-4 sm:gap-6 md:gap-8'>
+        <div className='h-full w-full bg-gray-50/50 rounded-xl flex flex-col overflow-hidden'>
+            
             {/* Course Header */}
-            <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5 md:p-6'>
-                <div className='flex flex-col gap-2'>
-                    <h1 className='font-bold text-xl sm:text-2xl md:text-3xl text-gray-900'>{course.title}</h1>
-                    <p className='text-xs sm:text-sm text-gray-500'>{formattedDate}</p>
+            <div className='bg-white border-b border-gray-100 px-6 py-8 md:px-10'>
+                <div className='max-w-7xl mx-auto'>
+                    <div className='flex flex-col md:flex-row md:items-center justify-between gap-6'>
+                        <div className='space-y-2'>
+                            <h1 className='text-3xl font-black text-gray-900 tracking-tight'>{course.title}</h1>
+                            <div className='flex items-center gap-4 text-sm text-gray-500 font-medium'>
+                                <span className='flex items-center gap-1.5'>
+                                    <MdMenuBook className="text-indigo-600" /> Course Code: {course.courseCode || "N/A"}
+                                </span>
+                                <span className='w-1 h-1 bg-gray-300 rounded-full'></span>
+                                <span>Published on {formattedDate}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Tabs and Content Section */}
-            <div className='bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden'>
-                {/* Tab Navigation */}
-                <div className='flex gap-4 sm:gap-6 md:gap-8 px-4 sm:px-5 md:px-6 pt-3 sm:pt-4 border-b border-gray-200'>
+            {/* Tabs Navigation */}
+            <div className='bg-white px-6 md:px-10 border-b border-gray-100'>
+                <div className='max-w-7xl mx-auto flex gap-8'>
                     {tabs.map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`pb-2 sm:pb-3 px-2 font-medium text-xs sm:text-sm capitalize transition-all
+                            className={`pb-4 px-2 font-bold text-sm capitalize transition-all relative
                                 ${activeTab === tab
-                                    ? "text-[#7034FF] border-b-2 border-[#7034FF]"
-                                    : "text-gray-600 hover:text-gray-900"
+                                    ? "text-indigo-600"
+                                    : "text-gray-400 hover:text-gray-600"
                                 }
                             `}
                         >
                             {tab}
+                            {activeTab === tab && (
+                                <div className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-t-full"></div>
+                            )}
                         </button>
                     ))}
                 </div>
+            </div>
 
-                {/* Tab Content */}
-                <div className='p-4 sm:p-5 md:p-6 max-h-[60vh] overflow-y-auto'>
+            {/* Tab Content */}
+            <div className='flex-1 overflow-y-auto p-6 md:p-10'>
+                <div className='max-w-7xl mx-auto'>
+                    
                     {activeTab === "description" && (
-                        <div>
-                            <p className='text-sm sm:text-base text-gray-700 leading-relaxed'>
-                                {course.description || "No description available"}
+                        <div className='bg-white rounded-2xl p-8 border border-gray-100 shadow-sm'>
+                            <div className='flex items-center gap-3 mb-6'>
+                                <div className='w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600'>
+                                    <MdDescription className="w-6 h-6" />
+                                </div>
+                                <h2 className='text-xl font-bold text-gray-900'>About this Course</h2>
+                            </div>
+                            <p className='text-gray-700 leading-relaxed font-medium whitespace-pre-wrap'>
+                                {course.description || "No description available for this course."}
                             </p>
                         </div>
                     )}
 
                     {activeTab === "modules" && (
-                        <div className='flex flex-col gap-3 sm:gap-4'>
+                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                             {modules.length === 0 ? (
-                                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-                                    <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                                        <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
-                                        </svg>
-                                    </div>
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Modules Available</h3>
-                                    <p className="text-sm text-gray-500">There are no modules in this course yet.</p>
+                                <div className="col-span-full bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
+                                    <p className="text-gray-400 font-medium italic">No modules have been added to this course yet.</p>
                                 </div>
                             ) : modules.map((module, index) => (
                                 <Link
                                     to={`/module/${module._id}`}
                                     key={module._id}
-                                    className='bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:shadow-md transition-all'
+                                    className='bg-white border border-gray-100 rounded-2xl p-5 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all group flex items-center gap-5'
                                 >
-                                    <div className='flex items-center justify-between'>
-                                        <div className='flex items-center gap-3 flex-1 min-w-0'>
-                                            {/* Module Number Badge */}
-                                            <div className='bg-[#7034FF] text-white rounded-full w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center font-bold text-sm flex-shrink-0'>
-                                                {index + 1}
-                                            </div>
-
-                                            {/* Module Info */}
-                                            <div className='flex-1 min-w-0'>
-                                                <h3 className='font-semibold text-sm sm:text-base text-gray-900'>
-                                                    {module.title}
-                                                </h3>
-                                                <p className='text-xs text-gray-500 mt-1'>
-                                                    {module.lessons?.length || 0} {module.lessons?.length === 1 ? 'lesson' : 'lessons'}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {/* Arrow Icon */}
-                                        <svg
-                                            className='w-5 h-5 text-gray-400 flex-shrink-0 ml-2'
-                                            fill='none'
-                                            stroke='currentColor'
-                                            viewBox='0 0 24 24'
-                                        >
-                                            <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M9 5l7 7-7 7'
-                                            />
-                                        </svg>
+                                    <div className='w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-black group-hover:bg-indigo-600 group-hover:text-white transition-all'>
+                                        {String(index + 1).padStart(2, '0')}
                                     </div>
-
-                                    {/* Module Description */}
-                                    {module.description && (
-                                        <p className='text-gray-600 text-xs mt-2 line-clamp-2 pl-0 sm:pl-12'>
-                                            {module.description}
+                                    <div className='flex-1 min-w-0'>
+                                        <h3 className='font-bold text-gray-900 truncate group-hover:text-indigo-600 transition-colors'>{module.title}</h3>
+                                        <p className='text-xs text-gray-400 font-bold uppercase tracking-wider mt-1'>
+                                            {module.lessons?.length || 0} Lessons
                                         </p>
-                                    )}
+                                    </div>
+                                    <MdChevronRight className="text-gray-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all w-6 h-6" />
                                 </Link>
                             ))}
                         </div>
                     )}
+
+                    {activeTab === "assignments" && (
+                        <div className='space-y-4'>
+                            {assignments.length === 0 ? (
+                                <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
+                                    <p className="text-gray-400 font-medium italic">No assignments for this course.</p>
+                                </div>
+                            ) : assignments.map((assignment) => (
+                                <Link
+                                    to={`/assignments/${assignment._id}`}
+                                    key={assignment._id}
+                                    className='bg-white border border-gray-100 rounded-2xl p-6 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all group flex flex-col md:flex-row md:items-center justify-between gap-6'
+                                >
+                                    <div className='flex items-center gap-5'>
+                                        <div className='w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center'>
+                                            <MdAssignment className="w-8 h-8" />
+                                        </div>
+                                        <div>
+                                            <h3 className='font-bold text-gray-900 group-hover:text-indigo-600 transition-colors'>{assignment.title}</h3>
+                                            <div className='flex items-center gap-4 mt-1'>
+                                                <span className='flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
+                                                    <MdAccessTime className="w-3.5 h-3.5" /> Due: {new Date(assignment.dueDate).toLocaleDateString()}
+                                                </span>
+                                                <span className='flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
+                                                    <MdGrade className="w-3.5 h-3.5" /> {assignment.maxMarks} Pts
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button className='px-6 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all'>
+                                        View & Submit
+                                    </button>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+
+                    {activeTab === "tests" && (
+                        <div className='space-y-4'>
+                            {tests.length === 0 ? (
+                                <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
+                                    <p className="text-gray-400 font-medium italic">No tests available for this course.</p>
+                                </div>
+                            ) : tests.filter(t => t.isPublished).map((test) => (
+                                <Link
+                                    to={`/student/take-test/${test._id}`}
+                                    key={test._id}
+                                    className='bg-white border border-gray-100 rounded-2xl p-6 hover:border-rose-200 hover:shadow-xl hover:shadow-rose-500/5 transition-all group flex flex-col md:flex-row md:items-center justify-between gap-6'
+                                >
+                                    <div className='flex items-center gap-5'>
+                                        <div className='w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center'>
+                                            <MdQuiz className="w-8 h-8" />
+                                        </div>
+                                        <div>
+                                            <h3 className='font-bold text-gray-900 group-hover:text-rose-600 transition-colors'>{test.title}</h3>
+                                            <div className='flex items-center gap-4 mt-1'>
+                                                <span className='flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
+                                                    <MdAccessTime className="w-3.5 h-3.5" /> {test.duration} Minutes
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button className='px-6 py-2 bg-rose-50 text-rose-600 rounded-xl text-sm font-bold group-hover:bg-rose-600 group-hover:text-white transition-all'>
+                                        Take Test
+                                    </button>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+
                 </div>
             </div>
         </div>

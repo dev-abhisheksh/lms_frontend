@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MdClose, MdUploadFile, MdCloudUpload } from 'react-icons/md';
+import { MdClose, MdUploadFile, MdCloudUpload, MdSend } from 'react-icons/md';
 import { createSubmission } from '../../API/submission.api';
 
 const SubmissionModal = ({ isOpen, onClose, assignment, onSuccess }) => {
@@ -42,7 +42,7 @@ const SubmissionModal = ({ isOpen, onClose, assignment, onSuccess }) => {
 
         try {
             await createSubmission(assignment._id, formData);
-            onSuccess(); // Close modal and refresh or show success message
+            onSuccess(); 
         } catch (err) {
             console.error("Submission error:", err);
             setError(err.response?.data?.message || 'Failed to submit assignment. Please try again.');
@@ -52,48 +52,52 @@ const SubmissionModal = ({ isOpen, onClose, assignment, onSuccess }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm transition-all">
+            <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] border border-gray-100">
+                
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 md:p-8 border-b border-gray-50">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900">Submit Assignment</h2>
-                        <p className="text-sm text-gray-500 mt-1">{assignment.title}</p>
+                        <h2 className="text-2xl font-black text-gray-900 tracking-tight">Hand In Work</h2>
+                        <p className="text-sm text-gray-500 font-medium mt-1">{assignment.title}</p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-3 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-2xl transition-all"
                     >
-                        <MdClose className="w-5 h-5" />
+                        <MdClose className="w-6 h-6" />
                     </button>
                 </div>
 
-                <div className="p-4 sm:p-6 overflow-y-auto">
+                {/* Body */}
+                <div className="p-6 md:p-8 overflow-y-auto scrollbar-hide">
                     {error && (
-                        <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm font-medium border border-red-100">
+                        <div className="mb-6 p-4 bg-rose-50 text-rose-700 rounded-2xl text-sm font-bold border border-rose-100 flex items-center gap-3">
+                            <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></div>
                             {error}
                         </div>
                     )}
 
-                    <form id="submission-form" onSubmit={handleSubmit} className="space-y-6">
+                    <form id="submission-form" onSubmit={handleSubmit} className="space-y-8">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Text Answer
+                            <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-3 ml-1">
+                                Written Response
                             </label>
                             <textarea
                                 value={textAnswer}
                                 onChange={(e) => setTextAnswer(e.target.value)}
                                 rows={6}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none text-sm"
+                                className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all resize-none text-sm font-medium"
                                 placeholder="Type your answer here..."
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Attachments <span className="text-gray-400 font-normal">(Max 5 files)</span>
+                            <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-3 ml-1">
+                                Attachments <span className="text-gray-300 font-bold ml-1">(Up to 5 files)</span>
                             </label>
                             
-                            <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 bg-gray-50 hover:bg-gray-100 transition-colors text-center cursor-pointer relative">
+                            <div className="border-2 border-dashed border-gray-100 rounded-[32px] p-10 bg-gray-50/50 hover:bg-gray-50 hover:border-indigo-300 transition-all text-center cursor-pointer relative group">
                                 <input
                                     type="file"
                                     multiple
@@ -101,36 +105,36 @@ const SubmissionModal = ({ isOpen, onClose, assignment, onSuccess }) => {
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                 />
                                 <div className="flex flex-col items-center">
-                                    <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-3">
-                                        <MdCloudUpload className="w-6 h-6 text-blue-600" />
+                                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                        <MdCloudUpload className="w-8 h-8 text-indigo-600" />
                                     </div>
-                                    <p className="text-sm font-medium text-gray-900">
-                                        Click or drag files to upload
+                                    <p className="text-sm font-bold text-gray-900">
+                                        Drag & drop or click to upload
                                     </p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        PDF, DOCX, ZIP, JPG, PNG (Max 5MB each)
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">
+                                        PDF, DOCX, ZIP, IMAGES
                                     </p>
                                 </div>
                             </div>
 
                             {files.length > 0 && (
-                                <div className="mt-4 space-y-2">
+                                <div className="mt-6 space-y-3">
                                     {files.map((file, index) => (
-                                        <div key={index} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+                                        <div key={index} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm">
                                             <div className="flex items-center gap-3 overflow-hidden">
-                                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
-                                                    <MdUploadFile className="w-4 h-4" />
+                                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
+                                                    <MdUploadFile className="w-5 h-5" />
                                                 </div>
-                                                <span className="text-sm font-medium text-gray-700 truncate">
+                                                <span className="text-sm font-bold text-gray-700 truncate">
                                                     {file.name}
                                                 </span>
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={() => removeFile(index)}
-                                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors shrink-0"
+                                                className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all shrink-0"
                                             >
-                                                <MdClose className="w-4 h-4" />
+                                                <MdClose className="w-5 h-5" />
                                             </button>
                                         </div>
                                     ))}
@@ -140,11 +144,12 @@ const SubmissionModal = ({ isOpen, onClose, assignment, onSuccess }) => {
                     </form>
                 </div>
 
-                <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
+                {/* Footer */}
+                <div className="p-6 md:p-8 border-t border-gray-50 bg-gray-50/30 flex flex-col sm:flex-row justify-end gap-3 shrink-0">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+                        className="px-8 py-3 text-sm font-bold text-gray-500 bg-white border border-gray-200 rounded-2xl hover:bg-gray-100 transition-all"
                         disabled={isSubmitting}
                     >
                         Cancel
@@ -153,17 +158,19 @@ const SubmissionModal = ({ isOpen, onClose, assignment, onSuccess }) => {
                         form="submission-form"
                         type="submit"
                         disabled={isSubmitting}
-                        className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm shadow-blue-200"
+                        className="px-10 py-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all font-black text-sm flex items-center justify-center gap-2 disabled:opacity-50 shadow-xl shadow-indigo-500/20"
                     >
                         {isSubmitting ? (
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <span>Submitting...</span>
+                            </div>
+                        ) : (
                             <>
-                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Submitting...
+                                <MdSend />
+                                <span>Confirm Submission</span>
                             </>
-                        ) : 'Submit Assignment'}
+                        )}
                     </button>
                 </div>
             </div>
