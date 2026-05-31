@@ -55,8 +55,8 @@ const App = () => {
   return (
     <BrowserRouter>
       <Toaster position="top-center" reverseOrder={false} />
-      <NotificationProvider>
-        <div className="h-screen w-full bg-[#D7D7E3]">
+        <NotificationProvider>
+          <div className="h-screen w-full bg-[#D7D7E3]">
         <Routes>
           {/* Root Redirect */}
           <Route path="/" element={<RootRedirect />} />

@@ -195,7 +195,7 @@ const AdminCourses = () => {
         </div>
 
         <div className="space-y-3 md:space-y-4">
-          {loading ? [1,2,3,4].map(i => <div key={i} className="h-20 md:h-24 bg-white rounded-2xl border border-gray-100 animate-pulse" />) : filteredCourses.length === 0 ? (
+          {filteredCourses.length === 0 && !loading ? (
             <div className="bg-white rounded-3xl border border-gray-100 p-16 text-center border-dashed border-2">
               <MdOutlineMenuBook className="w-8 h-8 text-gray-200 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2">Empty Catalog</h3>
