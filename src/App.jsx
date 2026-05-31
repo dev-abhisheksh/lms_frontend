@@ -15,7 +15,7 @@ import Ai from "./pages/Ai";
 import Profile from "./pages/Profile";
 import Modules from "./pages/Modules";
 import ProtectedRoutes from "./pages/ProtectedRoutes";
-import AdminDashboard from "./pages/AdminDashboard ";
+import AdminDashboard from "./pages/AdminDashboard";
 import AdminDepartments from "./pages/AdminDepartments";
 import AdminCourses from "./pages/AdminCourses";
 import AdminEnrollments from "./pages/AdminEnrollments";
