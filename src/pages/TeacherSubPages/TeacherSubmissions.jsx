@@ -180,6 +180,15 @@ const TeacherSubmissions = () => {
     }
   };
 
+  /* ── Tab Switching ── */
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSelectedItem("");
+    setSubmissions([]);
+    setSelectedSub(null);
+    setItems([]);
+  };
+
   /* ── Render Helper ── */
   const currentItem = items.find(i => i._id === selectedItem);
 
@@ -196,7 +205,7 @@ const TeacherSubmissions = () => {
 
           <div className="flex bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
             <button
-              onClick={() => setActiveTab("assignments")}
+              onClick={() => handleTabChange("assignments")}
               className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                 activeTab === "assignments" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-slate-400 hover:text-slate-600"
               }`}
@@ -204,7 +213,7 @@ const TeacherSubmissions = () => {
               Assignments
             </button>
             <button
-              onClick={() => setActiveTab("tests")}
+              onClick={() => handleTabChange("tests")}
               className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                 activeTab === "tests" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-slate-400 hover:text-slate-600"
               }`}
