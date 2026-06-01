@@ -143,13 +143,29 @@ const TeacherTests = () => {
   const goToQuestions = () => {
     if (!formData.title.trim()) return toast.error("Please enter a title");
     const count = Number(formData.totalQuestions) || 1;
-    const existing = formData.questions || [];
-    let qs = [...existing];
-    // grow
-    while (qs.length < count) qs.push(emptyQuestion(formData.type));
-    // shrink
-    qs = qs.slice(0, count);
-    setFormData((p) => ({ ...p, questions: qs }));
+    const testType = formData.type;
+    
+    setFormData((p) => {
+      let qs = [...(p.questions || [])];
+      
+      // Reconcile types if not mixed
+      if (testType !== "mixed") {
+        qs = qs.map(q => ({
+          ...q,
+          type: testType,
+          options: testType === "essay" ? [] : (testType === "obt" ? [{ text: q.options[0]?.text || "", isCorrect: true }] : q.options)
+        }));
+      }
+
+      // grow
+      while (qs.length < count) {
+        qs.push(emptyQuestion(testType));
+      }
+      // shrink
+      qs = qs.slice(0, count);
+      
+      return { ...p, questions: qs };
+    });
     setStep(2);
   };
 
@@ -454,10 +470,13 @@ const TeacherTests = () => {
                           {formData.type === "mixed" && (
                             <select value={q.type}
                               onChange={(e) => {
-                                updateQuestion(qi, "type", e.target.value);
-                                if (e.target.value === "essay") {
+                                const newType = e.target.value;
+                                updateQuestion(qi, "type", newType);
+                                if (newType === "essay") {
                                   updateQuestion(qi, "options", []);
-                                } else if (q.options.length === 0) {
+                                } else if (newType === "obt") {
+                                  updateQuestion(qi, "options", [{ text: "", isCorrect: true }]);
+                                } else if (newType === "mcq") {
                                   updateQuestion(qi, "options", [
                                     { text: "", isCorrect: true },
                                     { text: "", isCorrect: false },
@@ -484,8 +503,8 @@ const TeacherTests = () => {
                           rows="2" placeholder={`Enter question ${qi + 1}...`}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
 
-                        {/* options (MCQ / OBT) */}
-                        {(q.type === "mcq" || q.type === "obt") && (
+                        {/* options (MCQ) */}
+                        {q.type === "mcq" && (
                           <div className="space-y-2 pl-2">
                             {q.options.map((opt, oi) => (
                               <div key={oi} className="flex items-center gap-2">
@@ -516,8 +535,23 @@ const TeacherTests = () => {
                           </div>
                         )}
 
+                        {/* Objective (OBT) - Single correct answer input */}
+                        {q.type === "obt" && (
+                          <div className="pl-2">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Expected Correct Answer</label>
+                            <input 
+                              type="text" 
+                              value={q.options[0]?.text || ""}
+                              onChange={(e) => updateOption(qi, 0, "text", e.target.value)}
+                              placeholder="Type the exact expected answer..."
+                              className="w-full px-3 py-2 border border-green-300 bg-green-50/30 rounded-lg text-sm focus:ring-2 focus:ring-green-400 focus:outline-none"
+                            />
+                            <p className="text-[10px] text-gray-400 mt-1 italic">Student's answer must match this exactly (case-insensitive).</p>
+                          </div>
+                        )}
+
                         {q.type === "essay" && (
-                          <p className="text-xs text-gray-400 italic pl-2">Students will type their answer freely.</p>
+                          <p className="text-xs text-gray-400 italic pl-2">Students will type their answer freely. Manual grading required.</p>
                         )}
                       </div>
                     ))}

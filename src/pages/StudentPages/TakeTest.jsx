@@ -223,13 +223,23 @@ const TakeTest = () => {
                         ) : (
                             <div className="space-y-4">
                                 <label className="text-sm font-bold text-gray-400 uppercase tracking-widest">Your Answer</label>
-                                <textarea
-                                    value={selectedAns?.textAnswer || ""}
-                                    onChange={(e) => handleTextAnswer(e.target.value)}
-                                    rows="6"
-                                    placeholder={question.type === "essay" ? "Type your essay response here..." : "Type your answer here..."}
-                                    className="w-full p-6 rounded-[32px] border-2 border-gray-100 focus:border-indigo-600 focus:ring-0 text-lg transition-all"
-                                />
+                                {question.type === "essay" ? (
+                                    <textarea
+                                        value={selectedAns?.textAnswer || ""}
+                                        onChange={(e) => handleTextAnswer(e.target.value)}
+                                        rows="6"
+                                        placeholder="Type your essay response here..."
+                                        className="w-full p-6 rounded-[32px] border-2 border-gray-100 focus:border-indigo-600 focus:ring-0 text-lg transition-all"
+                                    />
+                                ) : (
+                                    <input
+                                        type="text"
+                                        value={selectedAns?.textAnswer || ""}
+                                        onChange={(e) => handleTextAnswer(e.target.value)}
+                                        placeholder="Type your answer here..."
+                                        className="w-full p-6 rounded-[32px] border-2 border-gray-100 focus:border-indigo-600 focus:ring-0 text-lg transition-all"
+                                    />
+                                )}
                             </div>
                         )}
                     </div>
