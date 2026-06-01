@@ -78,130 +78,216 @@ const StudentTests = () => {
 
     const getTestStatus = (testId) => {
         const sub = submissions.find(s => s.test._id === testId);
-        return sub ? { status: "completed", score: sub.score, total: sub.totalMarks } : { status: "pending" };
+        return sub ? { status: "completed", score: sub.score, total: sub.totalMarks, graded: sub.status === "graded" } : { status: "pending" };
     };
 
     if (loading) {
         return (
-            <div className="p-8 animate-pulse space-y-6">
-                <div className="h-10 bg-gray-200 rounded-lg w-48"></div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[...Array(6)].map((_, i) => (
-                        <div key={i} className="h-48 bg-gray-100 rounded-2xl"></div>
+            <div className="min-h-screen bg-[#F9FAFB] p-6 lg:p-8 space-y-8 animate-pulse">
+                <div className="h-10 bg-slate-200 rounded-xl w-64"></div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="h-32 bg-white rounded-[32px] border border-slate-100"></div>
                     ))}
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="lg:col-span-4 h-[500px] bg-white rounded-[32px] border border-slate-100"></div>
+                    <div className="lg:col-span-8 h-[500px] bg-white rounded-[32px] border border-slate-100"></div>
                 </div>
             </div>
         );
     }
 
+    const avgScore = submissions.length > 0
+        ? Math.round((submissions.reduce((acc, curr) => acc + (curr.score / curr.totalMarks), 0) / submissions.length) * 100)
+        : 0;
+
     return (
-        <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-10">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tight">Available Assessments</h1>
-                    <p className="text-gray-500 font-medium mt-1">Take your quizzes and track your performance</p>
+        <div className="min-h-screen bg-[#F9FAFB] p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto space-y-8">
+                {/* ── Page Header ── */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Assessments Hub</h1>
+                        <p className="text-sm font-medium text-slate-500 mt-1">Track your academic progress and upcoming tests</p>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
-                    <MdMenuBook className="text-gray-400 ml-2" />
-                    <select
-                        value={selectedCourse}
-                        onChange={(e) => setSelectedCourse(e.target.value)}
-                        className="bg-transparent text-sm font-bold text-gray-700 focus:outline-none pr-4"
-                    >
-                        <option value="all">All Courses</option>
-                        {courses.map(c => (
-                            <option key={c.course._id} value={c.course._id}>{c.course.title}</option>
-                        ))}
-                    </select>
+                {/* ── Stat Cards ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm flex flex-col gap-4">
+                        <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                            <MdQuiz className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-slate-500">Total Assessments</p>
+                            <p className="text-2xl font-bold text-slate-900">{tests.length}</p>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm flex flex-col gap-4">
+                        <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
+                            <MdCheckCircle className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-slate-500">Completed</p>
+                            <p className="text-2xl font-bold text-slate-900">{submissions.length}</p>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm flex flex-col gap-4">
+                        <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
+                            <MdGrade className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-slate-500">Average Performance</p>
+                            <p className="text-2xl font-bold text-slate-900">{avgScore}%</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            {/* Stats Overview */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="bg-indigo-600 rounded-3xl p-6 text-white shadow-xl shadow-indigo-100">
-                    <p className="text-indigo-100 text-xs font-black uppercase tracking-widest mb-2">Total Tests</p>
-                    <p className="text-4xl font-black">{tests.length}</p>
-                </div>
-                <div className="bg-emerald-500 rounded-3xl p-6 text-white shadow-xl shadow-emerald-100">
-                    <p className="text-emerald-100 text-xs font-black uppercase tracking-widest mb-2">Completed</p>
-                    <p className="text-4xl font-black">{submissions.length}</p>
-                </div>
-                <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
-                    <p className="text-gray-400 text-xs font-black uppercase tracking-widest mb-2">Average Score</p>
-                    <p className="text-4xl font-black text-gray-900">
-                        {submissions.length > 0
-                            ? Math.round((submissions.reduce((acc, curr) => acc + (curr.score / curr.totalMarks), 0) / submissions.length) * 100)
-                            : 0}%
-                    </p>
-                </div>
-            </div>
-
-            {/* Tests Grid */}
-            {filteredTests.length === 0 ? (
-                <div className="bg-gray-50 rounded-3xl p-20 text-center border-2 border-dashed border-gray-200">
-                    <MdQuiz className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-gray-900">No tests available</h3>
-                    <p className="text-gray-500">There are no assessments scheduled for this selection.</p>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredTests.map((test) => {
-                        const status = getTestStatus(test._id);
-                        const course = courses.find(c => c.course._id === test.course)?.course;
-
-                        return (
-                            <div key={test._id} className="group bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 transition-all flex flex-col h-full">
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${status.status === 'completed' ? 'bg-emerald-50 text-emerald-500' : 'bg-indigo-50 text-indigo-500'}`}>
-                                        <MdQuiz className="w-6 h-6" />
+                {/* ── Master-Detail Layout ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    
+                    {/* Master: Sidebar (lg:col-span-4) */}
+                    <aside className="lg:col-span-4 space-y-4">
+                        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
+                            <h2 className="text-lg font-bold tracking-tight text-slate-900 mb-6 flex items-center gap-2">
+                                <MdMenuBook className="w-5 h-5 text-indigo-600" />
+                                Your Courses
+                            </h2>
+                            <div className="space-y-2">
+                                <button
+                                    onClick={() => setSelectedCourse("all")}
+                                    className={`w-full p-4 rounded-2xl text-left transition-all flex items-center gap-3 ${
+                                        selectedCourse === "all" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "hover:bg-slate-50 text-slate-600"
+                                    }`}
+                                >
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedCourse === "all" ? "bg-white/20" : "bg-slate-100"}`}>
+                                        <MdQuiz className="w-5 h-5" />
                                     </div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                        {test.type}
-                                    </span>
-                                </div>
-
-                                <div className="space-y-2 flex-1">
-                                    <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider">{course?.title}</p>
-                                    <h3 className="text-xl font-black text-gray-900 leading-tight group-hover:text-indigo-600 transition-colors">
-                                        {test.title}
-                                    </h3>
-                                    <p className="text-sm text-gray-500 line-clamp-2">{test.description}</p>
-                                </div>
-
-                                <div className="mt-8 pt-6 border-t border-gray-50 flex items-center justify-between">
-                                    <div className="flex gap-4">
-                                        <div className="flex items-center gap-1.5 text-gray-400">
-                                            <MdAccessTime className="w-4 h-4" />
-                                            <span className="text-xs font-bold">{test.duration}m</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-gray-400">
-                                            <MdGrade className="w-4 h-4" />
-                                            <span className="text-xs font-bold">{test.totalMarks}pts</span>
-                                        </div>
+                                    <div>
+                                        <p className="text-sm font-bold">All Assessments</p>
+                                        <p className={`text-[10px] font-black uppercase tracking-wider ${selectedCourse === "all" ? "text-white/70" : "text-slate-400"}`}>
+                                            {tests.length} Total
+                                        </p>
                                     </div>
+                                </button>
 
-                                    {status.status === 'completed' ? (
-                                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl">
-                                            <MdCheckCircle className="w-4 h-4" />
-                                            <span className="text-xs font-black uppercase tracking-widest">{status.score}/{status.total}</span>
+                                {courses.map((c) => (
+                                    <button
+                                        key={c.course._id}
+                                        onClick={() => setSelectedCourse(c.course._id)}
+                                        className={`w-full p-4 rounded-2xl text-left transition-all flex items-center gap-3 ${
+                                            selectedCourse === c.course._id ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "hover:bg-slate-50 text-slate-600"
+                                        }`}
+                                    >
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedCourse === c.course._id ? "bg-white/20" : "bg-slate-100"}`}>
+                                            <span className="font-bold text-xs">{c.course.courseCode?.slice(0, 2)}</span>
                                         </div>
-                                    ) : (
-                                        <button
-                                            onClick={() => navigate(`/student/take-test/${test._id}`)}
-                                            className="px-6 py-2 bg-gray-900 text-white rounded-xl hover:bg-indigo-600 transition-all font-black text-xs uppercase tracking-widest flex items-center gap-2 group/btn"
-                                        >
-                                            Start
-                                            <MdPlayArrow className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform" />
-                                        </button>
-                                    )}
-                                </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-bold truncate">{c.course.title}</p>
+                                            <p className={`text-[10px] font-black uppercase tracking-wider ${selectedCourse === c.course._id ? "text-white/70" : "text-slate-400"}`}>
+                                                {c.course.courseCode}
+                                            </p>
+                                        </div>
+                                    </button>
+                                ))}
                             </div>
-                        );
-                    })}
+                        </div>
+                    </aside>
+
+                    {/* Detail Area (lg:col-span-8) */}
+                    <main className="lg:col-span-8">
+                        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm min-h-[500px] overflow-hidden">
+                            <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+                                <h3 className="text-lg font-bold tracking-tight text-slate-900">
+                                    {selectedCourse === "all" ? "All Available Tests" : courses.find(c => c.course._id === selectedCourse)?.course.title}
+                                </h3>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                                    {filteredTests.length} Items Found
+                                </span>
+                            </div>
+
+                            <div className="p-8">
+                                {filteredTests.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-20 text-center">
+                                        <div className="w-20 h-20 bg-slate-50 rounded-[32px] flex items-center justify-center text-slate-300 mb-6">
+                                            <MdQuiz className="w-10 h-10" />
+                                        </div>
+                                        <h4 className="text-xl font-bold text-slate-900">No assessments scheduled</h4>
+                                        <p className="text-sm font-medium text-slate-500 mt-2 max-w-xs">Check back later or contact your instructor for upcoming quizzes.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {filteredTests.map((test) => {
+                                            const status = getTestStatus(test._id);
+                                            const isCompleted = status.status === 'completed';
+                                            
+                                            return (
+                                                <div 
+                                                    key={test._id} 
+                                                    className="group flex flex-col md:flex-row md:items-center gap-6 p-6 rounded-[32px] border border-slate-100 transition-all hover:scale-[1.01] hover:shadow-xl hover:shadow-slate-200/50 hover:bg-slate-50/50"
+                                                >
+                                                    {/* Leading */}
+                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+                                                        isCompleted ? "bg-green-50 text-green-600" : "bg-indigo-50 text-indigo-600"
+                                                    }`}>
+                                                        <MdQuiz className="w-7 h-7" />
+                                                    </div>
+
+                                                    {/* Center */}
+                                                    <div className="flex-1 min-w-0 space-y-1">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <h4 className="text-sm font-bold text-slate-900">{test.title}</h4>
+                                                            <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                                                                {test.type}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs font-medium text-slate-500 line-clamp-1">{test.description}</p>
+                                                        <div className="flex items-center gap-4 pt-1">
+                                                            <div className="flex items-center gap-1.5 text-slate-400">
+                                                                <MdAccessTime className="w-3.5 h-3.5" />
+                                                                <span className="text-[10px] font-bold uppercase">{test.duration}m</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 text-slate-400">
+                                                                <MdGrade className="w-3.5 h-3.5" />
+                                                                <span className="text-[10px] font-bold uppercase">{test.totalMarks} Points</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Trailing */}
+                                                    <div className="flex items-center gap-4 shrink-0">
+                                                        {isCompleted ? (
+                                                            <div className="text-right">
+                                                                <p className="text-xs font-bold text-green-600 mb-1">Completed</p>
+                                                                <div className="flex items-baseline gap-1">
+                                                                    <span className="text-xl font-black text-slate-900">{status.score}</span>
+                                                                    <span className="text-xs font-bold text-slate-400">/ {status.total}</span>
+                                                                </div>
+                                                                {!status.graded && (
+                                                                    <p className="text-[8px] font-black uppercase text-amber-500 tracking-wider">Pending Grade</p>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => navigate(`/student/take-test/${test._id}`)}
+                                                                className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 flex items-center gap-2 group-hover:scale-105"
+                                                            >
+                                                                Start Test
+                                                                <MdPlayArrow className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </main>
                 </div>
-            )}
+            </div>
         </div>
     );
 };
