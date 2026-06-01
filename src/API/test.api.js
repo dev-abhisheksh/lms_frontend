@@ -26,6 +26,16 @@ export const togglePublishTest = async (testId) => {
     return await API.patch(`/tests/${testId}/publish`);
 };
 
+// Teacher - get submissions for a specific test
+export const getTestSubmissions = async (testId) => {
+    return await API.get(`/tests/${testId}/submissions`);
+};
+
+// Teacher - grade a specific test submission
+export const gradeTestSubmission = async (submissionId, gradeData) => {
+    return await API.post(`/tests/submission/${submissionId}/grade`, gradeData);
+};
+
 // Student APIs
 export const getTestById = async (testId) => {
     return await API.get(`/tests/${testId}`);

@@ -66,6 +66,14 @@ const TakeTest = () => {
         });
     };
 
+    const handleTextAnswer = (text) => {
+        const questionId = test.questions[currentQuestion]._id;
+        setAnswers(prev => {
+            const existing = prev.filter(a => a.questionId !== questionId);
+            return [...existing, { questionId, textAnswer: text }];
+        });
+    };
+
     const handleAutoSubmit = () => {
         toast("Time is up! Your test will be submitted automatically.", { icon: "⏰" });
         handleSubmit();
@@ -184,33 +192,46 @@ const TakeTest = () => {
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
-                        {question.options.map((opt, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => handleOptionSelect(idx)}
-                                className={`group flex items-center gap-6 p-6 rounded-[32px] border-2 text-left transition-all ${
-                                    selectedAns?.selectedOption === idx 
-                                    ? 'bg-indigo-50 border-indigo-600 shadow-xl shadow-indigo-500/10' 
-                                    : 'bg-white border-gray-100 hover:border-indigo-200 hover:bg-gray-50'
-                                }`}
-                            >
-                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all ${
-                                    selectedAns?.selectedOption === idx 
-                                    ? 'bg-indigo-600 text-white shadow-lg' 
-                                    : 'bg-gray-50 text-gray-400 group-hover:bg-indigo-100 group-hover:text-indigo-400'
-                                }`}>
-                                    {String.fromCharCode(65 + idx)}
-                                </div>
-                                <span className={`text-lg font-bold transition-colors ${
-                                    selectedAns?.selectedOption === idx ? 'text-indigo-900' : 'text-gray-700'
-                                }`}>
-                                    {opt.text}
-                                </span>
-                                {selectedAns?.selectedOption === idx && (
-                                    <MdCheckCircle className="ml-auto w-8 h-8 text-indigo-600" />
-                                )}
-                            </button>
-                        ))}
+                        {(question.type === "mcq" || (question.type === "obt" && question.options?.length > 0)) ? (
+                            question.options.map((opt, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => handleOptionSelect(idx)}
+                                    className={`group flex items-center gap-6 p-6 rounded-[32px] border-2 text-left transition-all ${
+                                        selectedAns?.selectedOption === idx 
+                                        ? 'bg-indigo-50 border-indigo-600 shadow-xl shadow-indigo-500/10' 
+                                        : 'bg-white border-gray-100 hover:border-indigo-200 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all ${
+                                        selectedAns?.selectedOption === idx 
+                                        ? 'bg-indigo-600 text-white shadow-lg' 
+                                        : 'bg-gray-50 text-gray-400 group-hover:bg-indigo-100 group-hover:text-indigo-400'
+                                    }`}>
+                                        {String.fromCharCode(65 + idx)}
+                                    </div>
+                                    <span className={`text-lg font-bold transition-colors ${
+                                        selectedAns?.selectedOption === idx ? 'text-indigo-900' : 'text-gray-700'
+                                    }`}>
+                                        {opt.text}
+                                    </span>
+                                    {selectedAns?.selectedOption === idx && (
+                                        <MdCheckCircle className="ml-auto w-8 h-8 text-indigo-600" />
+                                    )}
+                                </button>
+                            ))
+                        ) : (
+                            <div className="space-y-4">
+                                <label className="text-sm font-bold text-gray-400 uppercase tracking-widest">Your Answer</label>
+                                <textarea
+                                    value={selectedAns?.textAnswer || ""}
+                                    onChange={(e) => handleTextAnswer(e.target.value)}
+                                    rows="6"
+                                    placeholder={question.type === "essay" ? "Type your essay response here..." : "Type your answer here..."}
+                                    className="w-full p-6 rounded-[32px] border-2 border-gray-100 focus:border-indigo-600 focus:ring-0 text-lg transition-all"
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 

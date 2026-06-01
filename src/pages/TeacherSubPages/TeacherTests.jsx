@@ -70,6 +70,22 @@ const TeacherTests = () => {
   const [step, setStep] = useState(1); // 1 = meta, 2 = questions
   const [saving, setSaving] = useState(false);
 
+  // Submissions view state
+  const [viewingSubmissionsFor, setViewingSubmissionsFor] = useState(null);
+  const [submissions, setSubmissions] = useState([]);
+  const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+  const [gradingSubmission, setGradingSubmission] = useState(null);
+  const [gradingData, setGradingData] = useState([]); // Array of { questionId, marksObtained, isCorrect }
+  const [gradingFeedback, setGradingFeedback] = useState("");
+
+  /* ── auto-calculate total marks ── */
+  useEffect(() => {
+    const total = formData.questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
+    if (total !== formData.totalMarks) {
+      setFormData(p => ({ ...p, totalMarks: total }));
+    }
+  }, [formData.questions]);
+
   /* ── load courses ── */
   useEffect(() => {
     (async () => {
@@ -91,6 +107,7 @@ const TeacherTests = () => {
       try {
         const res = await getTestsByCourse(selectedCourse);
         setTests(res.data.tests || []);
+        setViewingSubmissionsFor(null);
       } catch (e) {
         console.error("Error loading tests:", e);
         setTests([]);
@@ -101,6 +118,21 @@ const TeacherTests = () => {
     load();
   }, [selectedCourse]);
 
+  /* ── load submissions ── */
+  const loadSubmissions = async (testId) => {
+    setLoadingSubmissions(true);
+    try {
+      const { getTestSubmissions } = await import("../../API/test.api");
+      const res = await getTestSubmissions(testId);
+      setSubmissions(res.data.submissions || []);
+      setViewingSubmissionsFor(testId);
+    } catch (e) {
+      toast.error("Failed to load submissions");
+    } finally {
+      setLoadingSubmissions(false);
+    }
+  };
+
   /* ── form field handler ── */
   const handleField = (e) => {
     const { name, value, type, checked } = e.target;
@@ -109,6 +141,7 @@ const TeacherTests = () => {
 
   /* ── go from step-1 (meta) → step-2 (questions) ── */
   const goToQuestions = () => {
+    if (!formData.title.trim()) return toast.error("Please enter a title");
     const count = Number(formData.totalQuestions) || 1;
     const existing = formData.questions || [];
     let qs = [...existing];
@@ -133,8 +166,10 @@ const TeacherTests = () => {
     setFormData((p) => {
       const qs = [...p.questions];
       const opts = [...qs[qIdx].options];
-      if (field === "isCorrect") {
-        // only one correct per question for mcq
+      const qType = qs[qIdx].type;
+
+      if (field === "isCorrect" && (qType === "mcq" || qType === "obt")) {
+        // for MCQ/OBT, usually one correct. (Simplified)
         opts.forEach((o, i) => (opts[i] = { ...o, isCorrect: i === oIdx }));
       } else {
         opts[oIdx] = { ...opts[oIdx], [field]: value };
@@ -170,6 +205,11 @@ const TeacherTests = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedCourse) return toast.error("Select a course first");
+
+    // Validation
+    const invalid = formData.questions.some(q => !q.questionText.trim());
+    if (invalid) return toast.error("All questions must have text");
+
     setSaving(true);
     try {
       if (editingTestId) {
@@ -195,6 +235,32 @@ const TeacherTests = () => {
     setShowForm(false);
     setEditingTestId(null);
     setStep(1);
+  };
+
+  /* ── grading ── */
+  const startGrading = (sub) => {
+    setGradingSubmission(sub);
+    setGradingData(sub.answers.map(a => ({
+      questionId: a.questionId,
+      marksObtained: a.marksObtained || 0,
+      isCorrect: a.isCorrect || false
+    })));
+    setGradingFeedback(sub.feedback || "");
+  };
+
+  const submitGrade = async () => {
+    try {
+      const { gradeTestSubmission } = await import("../../API/test.api");
+      await gradeTestSubmission(gradingSubmission._id, {
+        gradedAnswers: gradingData,
+        feedback: gradingFeedback
+      });
+      toast.success("Graded successfully");
+      setGradingSubmission(null);
+      loadSubmissions(viewingSubmissionsFor);
+    } catch (e) {
+      toast.error("Grading failed");
+    }
   };
 
   /* ── edit ── */
@@ -473,80 +539,187 @@ const TeacherTests = () => {
           </div>
         )}
 
-        {/* ═══════════ TESTS LIST ═══════════ */}
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-            <MdQuiz className="w-5 h-5 text-gray-600" />
-            <h2 className="text-base font-semibold text-gray-900">
-              {courses.find((c) => c._id === selectedCourse)?.title || "Tests"}
-            </h2>
-            <span className="ml-auto text-xs text-gray-500">{tests.length} test(s)</span>
+        {/* ═══════════ TESTS LIST or SUBMISSIONS ═══════════ */}
+        {!showForm && (
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+              {viewingSubmissionsFor ? (
+                <button onClick={() => setViewingSubmissionsFor(null)} className="flex items-center gap-1 text-sm text-orange-600 font-semibold hover:underline">
+                  <MdArrowBack /> Back to Tests
+                </button>
+              ) : (
+                <>
+                  <MdQuiz className="w-5 h-5 text-gray-600" />
+                  <h2 className="text-base font-semibold text-gray-900">
+                    {courses.find((c) => c._id === selectedCourse)?.title || "Tests"}
+                  </h2>
+                  <span className="ml-auto text-xs text-gray-500">{tests.length} test(s)</span>
+                </>
+              )}
+            </div>
+
+            {loading || loadingSubmissions ? (
+              <div className="p-6 space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />
+                ))}
+              </div>
+            ) : viewingSubmissionsFor ? (
+              /* ── Submissions List ── */
+              <div className="divide-y divide-gray-100 min-h-[200px]">
+                {submissions.length === 0 ? (
+                  <div className="p-10 text-center text-gray-500">No submissions found for this test.</div>
+                ) : (
+                  submissions.map((sub) => (
+                    <div key={sub._id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">{sub.student?.fullName}</p>
+                        <p className="text-xs text-gray-500">{sub.student?.email}</p>
+                        <p className="text-[10px] text-gray-400 mt-1">Submitted: {new Date(sub.submittedAt).toLocaleString()}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-orange-600">{sub.score} / {sub.totalMarks}</p>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full ${sub.status === "graded" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+                            {sub.status.toUpperCase()}
+                          </span>
+                        </div>
+                        <button onClick={() => startGrading(sub)} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs font-semibold">
+                          View/Grade
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              /* ── Tests List ── */
+              tests.length === 0 ? (
+                <div className="p-10 text-center">
+                  <MdQuiz className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm text-gray-500">No tests yet. Click "New Test" to create one!</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {tests.map((test) => {
+                    const meta = typeMeta(test.type);
+                    return (
+                      <div key={test._id} className="p-4 hover:bg-gray-50/80 transition group">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <h3 className="text-sm font-semibold text-gray-900">{test.title}</h3>
+                              <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${meta.color}`}>
+                                {meta.label}
+                              </span>
+                              <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${
+                                test.isPublished ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                              }`}>
+                                {test.isPublished ? "Published" : "Draft"}
+                              </span>
+                            </div>
+                            {test.description && (
+                              <p className="text-xs text-gray-500 mb-1.5 line-clamp-1">{test.description}</p>
+                            )}
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                              <span>{test.duration} min</span>
+                              <span>{test.totalQuestions || test.questions?.length || 0} Qs</span>
+                              <span>{test.totalMarks} marks</span>
+                              <span>Pass: {test.passingMarks}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition">
+                            <button onClick={() => loadSubmissions(test._id)}
+                              className="p-2 hover:bg-orange-50 rounded-lg text-orange-600 transition" title="View Submissions">
+                              <MdQuiz className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleToggle(test._id)}
+                              className={`p-2 rounded-lg transition ${test.isPublished ? "hover:bg-yellow-50 text-yellow-600" : "hover:bg-green-50 text-green-600"}`}
+                              title={test.isPublished ? "Unpublish" : "Publish"}>
+                              {test.isPublished ? <MdUnpublished className="w-4 h-4" /> : <MdPublish className="w-4 h-4" />}
+                            </button>
+                            <button onClick={() => handleEdit(test)}
+                              className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition" title="Edit">
+                              <MdEdit className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDelete(test._id)}
+                              className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition" title="Delete">
+                              <MdDelete className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            )}
           </div>
+        )}
+      </div>
 
-          {loading ? (
-            <div className="p-6 space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />
-              ))}
+      {/* ── Grading Modal ── */}
+      {gradingSubmission && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h2 className="text-lg font-bold">Grade Submission: {gradingSubmission.student?.fullName}</h2>
+              <button onClick={() => setGradingSubmission(null)}><MdClose className="w-6 h-6" /></button>
             </div>
-          ) : tests.length === 0 ? (
-            <div className="p-10 text-center">
-              <MdQuiz className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-sm text-gray-500">No tests yet. Click "New Test" to create one!</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {tests.map((test) => {
-                const meta = typeMeta(test.type);
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {gradingSubmission.answers.map((ans, idx) => {
+                const question = tests.find(t => t._id === viewingSubmissionsFor)?.questions.find(q => q._id === ans.questionId);
                 return (
-                  <div key={test._id} className="p-4 hover:bg-gray-50/80 transition group">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="text-sm font-semibold text-gray-900">{test.title}</h3>
-                          <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${meta.color}`}>
-                            {meta.label}
-                          </span>
-                          <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${
-                            test.isPublished ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-                          }`}>
-                            {test.isPublished ? "Published" : "Draft"}
-                          </span>
-                        </div>
-                        {test.description && (
-                          <p className="text-xs text-gray-500 mb-1.5 line-clamp-1">{test.description}</p>
-                        )}
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                          <span>{test.duration} min</span>
-                          <span>{test.totalQuestions || test.questions?.length || 0} Qs</span>
-                          <span>{test.totalMarks} marks</span>
-                          <span>Pass: {test.passingMarks}</span>
-                        </div>
+                  <div key={idx} className="border p-3 rounded-lg bg-gray-50 space-y-2">
+                    <p className="text-sm font-semibold">Q{idx + 1}: {question?.questionText || "Question text not available"}</p>
+                    {ans.textAnswer && (
+                      <div className="bg-white p-2 border rounded text-sm italic">Student Ans: {ans.textAnswer}</div>
+                    )}
+                    {ans.selectedOption !== undefined && (
+                      <p className="text-sm">Selected Option: {String.fromCharCode(65 + ans.selectedOption)}</p>
+                    )}
+                    <div className="flex items-center gap-4 pt-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-gray-500">MARKS:</label>
+                        <input type="number" 
+                          value={gradingData[idx]?.marksObtained || 0} 
+                          max={question?.marks || 100}
+                          onChange={(e) => {
+                            const newData = [...gradingData];
+                            newData[idx].marksObtained = Number(e.target.value);
+                            newData[idx].isCorrect = Number(e.target.value) > 0;
+                            setGradingData(newData);
+                          }}
+                          className="w-16 border rounded px-2 py-1 text-sm" />
+                        <span className="text-xs text-gray-400">/ {question?.marks || 0}</span>
                       </div>
-
-                      <div className="flex items-center gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition">
-                        <button onClick={() => handleToggle(test._id)}
-                          className={`p-2 rounded-lg transition ${test.isPublished ? "hover:bg-yellow-50 text-yellow-600" : "hover:bg-green-50 text-green-600"}`}
-                          title={test.isPublished ? "Unpublish" : "Publish"}>
-                          {test.isPublished ? <MdUnpublished className="w-4 h-4" /> : <MdPublish className="w-4 h-4" />}
-                        </button>
-                        <button onClick={() => handleEdit(test)}
-                          className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition" title="Edit">
-                          <MdEdit className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDelete(test._id)}
-                          className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition" title="Delete">
-                          <MdDelete className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <label className="flex items-center gap-1 text-xs cursor-pointer">
+                        <input type="checkbox" 
+                          checked={gradingData[idx]?.isCorrect}
+                          onChange={(e) => {
+                            const newData = [...gradingData];
+                            newData[idx].isCorrect = e.target.checked;
+                            setGradingData(newData);
+                          }} /> Correct?
+                      </label>
                     </div>
                   </div>
                 );
               })}
+              <div>
+                <label className="block text-sm font-bold mb-1">Teacher Feedback</label>
+                <textarea value={gradingFeedback} onChange={(e) => setGradingFeedback(e.target.value)}
+                  className="w-full border rounded p-2 text-sm" rows="3" placeholder="Add feedback..."></textarea>
+              </div>
             </div>
-          )}
+            <div className="p-4 border-t flex justify-end gap-3">
+              <button onClick={() => setGradingSubmission(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+              <button onClick={submitGrade} className="px-6 py-2 bg-orange-600 text-white rounded font-bold hover:bg-orange-700">Save Grade</button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
