@@ -33,3 +33,16 @@ export const disconnectTestSocket = () => {
   socket.off("test:deleted");
   socket.disconnect();
 };
+
+export const connectSubmissionSocket = (courseIds, { onSubmissionReceived }) => {
+  socket.connect()
+  socket.emit("join-courses", courseIds)
+  socket.on("submission:received", (data) => {
+    if (onSubmissionReceived) onSubmissionReceived(data)
+  })
+}
+
+export const disconnectSubmissionSocket = () => {
+  socket.off("submission:received");
+  socket.disconnect();
+};

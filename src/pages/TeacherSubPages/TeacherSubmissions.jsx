@@ -20,6 +20,7 @@ import { getTeacherCourses } from "../../API/course.api";
 import { getAssignmentsByCourse, getAssignmentById } from "../../API/assignment.api";
 import { getAllSubmissions, gradeSubmission } from "../../API/submission.api";
 import { getTestsByCourse, getTestSubmissions, gradeTestSubmission } from "../../API/test.api";
+import { connectSubmissionSocket, disconnectSubmissionSocket } from "../../socket/test.socket";
 
 const TeacherSubmissions = () => {
   const { assignmentId: paramAssignmentId } = useParams();
@@ -29,13 +30,13 @@ const TeacherSubmissions = () => {
   const [activeTab, setActiveTab] = useState("assignments"); // 'assignments' | 'tests'
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(initialCourseId);
-  
+
   // Selection States
   const [items, setItems] = useState([]); // Assignments or Tests
   const [selectedItem, setSelectedItem] = useState(""); // ID of selected assignment or test
   const [submissions, setSubmissions] = useState([]);
   const [selectedSub, setSelectedSub] = useState(null);
-  
+
   const [loading, setLoading] = useState({
     courses: true,
     items: false,
@@ -100,6 +101,32 @@ const TeacherSubmissions = () => {
     };
     loadItems();
   }, [selectedCourse, activeTab, paramAssignmentId]);
+
+  useEffect(() => {
+    if (!selectedCourse) return
+
+    connectSubmissionSocket([selectedCourse], {
+      onSubmissionReceived: (data) => {
+        // Handle both assignments and tests
+        const isMatch = activeTab === "assignments" 
+          ? data.assignmentId === selectedItem 
+          : data.testId === selectedItem;
+
+        if (!isMatch) return;
+        
+        setSubmissions(prev => {
+          // Avoid duplicates if already exists
+          if (prev.find(s => s._id === data.submission._id)) return prev;
+          return [data.submission, ...prev];
+        });
+        
+        toast.success(`New submission from ${data.submission.student?.fullName || 'a student'}`);
+      }
+    })
+
+    return () => disconnectSubmissionSocket()
+
+  }, [selectedCourse, selectedItem, activeTab])
 
   /* ── Load Submissions when selected item changes ── */
   const loadSubmissions = async () => {
@@ -195,7 +222,7 @@ const TeacherSubmissions = () => {
   return (
     <div className="min-h-screen bg-[#F9FAFB] p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        
+
         {/* ── Page Header ── */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
@@ -206,17 +233,15 @@ const TeacherSubmissions = () => {
           <div className="flex bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
             <button
               onClick={() => handleTabChange("assignments")}
-              className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                activeTab === "assignments" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-slate-400 hover:text-slate-600"
-              }`}
+              className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === "assignments" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-slate-400 hover:text-slate-600"
+                }`}
             >
               Assignments
             </button>
             <button
               onClick={() => handleTabChange("tests")}
-              className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                activeTab === "tests" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-slate-400 hover:text-slate-600"
-              }`}
+              className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === "tests" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-slate-400 hover:text-slate-600"
+                }`}
             >
               Tests & Quizzes
             </button>
@@ -267,13 +292,13 @@ const TeacherSubmissions = () => {
         {/* ── Master-Detail Layout ── */}
         {!selectedItem ? (
           <div className="bg-white rounded-[40px] border border-slate-100 p-20 text-center shadow-sm">
-             <MdOutlineGrading className="w-20 h-20 text-slate-100 mx-auto mb-6" />
-             <h3 className="text-xl font-bold text-slate-900">No Assessment Selected</h3>
-             <p className="text-sm font-medium text-slate-500 mt-2">Select a course and an assessment above to begin grading.</p>
+            <MdOutlineGrading className="w-20 h-20 text-slate-100 mx-auto mb-6" />
+            <h3 className="text-xl font-bold text-slate-900">No Assessment Selected</h3>
+            <p className="text-sm font-medium text-slate-500 mt-2">Select a course and an assessment above to begin grading.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
+
             {/* Master: Student List (lg:col-span-4) */}
             <aside className="lg:col-span-4 bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[700px]">
               <div className="p-6 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
@@ -293,13 +318,11 @@ const TeacherSubmissions = () => {
                       <button
                         key={sub._id}
                         onClick={() => setSelectedSub(sub)}
-                        className={`w-full p-6 text-left transition-all flex items-center gap-4 ${
-                          isSelected ? "bg-indigo-600 text-white shadow-xl shadow-indigo-100" : "hover:bg-slate-50"
-                        }`}
+                        className={`w-full p-6 text-left transition-all flex items-center gap-4 ${isSelected ? "bg-indigo-600 text-white shadow-xl shadow-indigo-100" : "hover:bg-slate-50"
+                          }`}
                       >
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
-                          isSelected ? "bg-white/20" : "bg-slate-100 text-slate-600"
-                        }`}>
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${isSelected ? "bg-white/20" : "bg-slate-100 text-slate-600"
+                          }`}>
                           <span className="font-bold text-xs">{sub.student?.fullName?.slice(0, 2).toUpperCase()}</span>
                         </div>
                         <div className="min-w-0 flex-1">
@@ -379,7 +402,7 @@ const TeacherSubmissions = () => {
                               <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-black uppercase tracking-widest bg-white px-2 py-1 rounded border">Question {idx + 1} ({question?.type})</span>
                                 <div className="flex items-center gap-2">
-                                  <input type="number" 
+                                  <input type="number"
                                     value={gradeData.testAnswers[idx]?.marksObtained || 0}
                                     onChange={(e) => {
                                       const newAnswers = [...gradeData.testAnswers];
