@@ -9,6 +9,7 @@ import {
   MdOutlineQuiz,
   MdOutlineDescription,
   MdOutlineFolderOpen,
+  MdOutlineChecklist,
 } from "react-icons/md";
 
 const TeacherBottombar = () => {
@@ -25,6 +26,12 @@ const TeacherBottombar = () => {
       label: "Courses",
       icon: MdOutlineSchool,
       path: "/teacher/courses",
+    },
+    {
+      id: "attendance",
+      label: "Attendance",
+      icon: MdOutlineChecklist,
+      path: "/teacher/attendance",
     },
     {
       id: "assignments",

@@ -10,6 +10,7 @@ import {
   MdOutlineDescription,
   MdOutlineFolderOpen,
   MdOutlineArrowBack,
+  MdOutlineChecklist,
 } from "react-icons/md";
 
 const TeacherSideBar = () => {
@@ -26,6 +27,12 @@ const TeacherSideBar = () => {
       label: "My Courses",
       icon: MdOutlineSchool,
       path: "/teacher/courses",
+    },
+    {
+      id: "attendance",
+      label: "Attendance",
+      icon: MdOutlineChecklist,
+      path: "/teacher/attendance",
     },
     {
       id: "assignments",

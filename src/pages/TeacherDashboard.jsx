@@ -212,6 +212,13 @@ const TeacherDashboard = () => {
                 color="bg-green-100 text-green-600"
               />
               <ActionCard
+                icon={MdCheckCircle}
+                title="Mark Attendance"
+                desc="Track student presence for today"
+                href="/teacher/attendance"
+                color="bg-teal-100 text-teal-600"
+              />
+              <ActionCard
                 icon={MdQuiz}
                 title="Create Test"
                 desc="Design OBT, MCQ, and other test types"

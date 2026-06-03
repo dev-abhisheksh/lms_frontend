@@ -4,7 +4,8 @@ import { Link, useParams, useNavigate } from 'react-router-dom'
 import { allModules } from '../API/module.api'
 import { getAssignmentsByCourse } from '../API/assignment.api'
 import { getTestsByCourse } from '../API/test.api'
-import { MdAssignment, MdQuiz, MdMenuBook, MdDescription, MdChevronRight, MdAccessTime, MdGrade } from 'react-icons/md'
+import { getMyAttendance } from '../API/attendance.api'
+import { MdAssignment, MdQuiz, MdMenuBook, MdDescription, MdChevronRight, MdAccessTime, MdGrade, MdCheckCircle, MdCancel, MdAccessAlarms } from 'react-icons/md'
 
 const CourseSingle = () => {
     const { courseID } = useParams()
@@ -13,6 +14,7 @@ const CourseSingle = () => {
     const [modules, setModules] = useState([])
     const [assignments, setAssignments] = useState([])
     const [tests, setTests] = useState([])
+    const [attendance, setAttendance] = useState([])
     const [activeTab, setActiveTab] = useState('description')
     const [loading, setLoading] = useState(true)
 
@@ -20,11 +22,12 @@ const CourseSingle = () => {
         const fetchCourseData = async () => {
             try {
                 setLoading(true)
-                const [courseRes, modulesRes, assignmentsRes, testsRes] = await Promise.all([
+                const [courseRes, modulesRes, assignmentsRes, testsRes, attendanceRes] = await Promise.all([
                     getCourseById(courseID),
                     allModules(courseID).catch(() => ({ data: { modules: [] } })),
                     getAssignmentsByCourse(courseID).catch(() => ({ data: { assignments: [] } })),
-                    getTestsByCourse(courseID).catch(() => ({ data: { tests: [] } }))
+                    getTestsByCourse(courseID).catch(() => ({ data: { tests: [] } })),
+                    getMyAttendance(courseID).catch(() => ({ attendance: [] }))
                 ]);
 
                 setCourse(courseRes.data.course);
@@ -39,6 +42,10 @@ const CourseSingle = () => {
 
                 if (Array.isArray(testsRes.data.tests)) {
                     setTests(testsRes.data.tests);
+                }
+
+                if (attendanceRes && attendanceRes.attendance) {
+                    setAttendance(attendanceRes.attendance);
                 }
             } catch (error) {
                 console.error("Failed to fetch course data", error)
@@ -56,7 +63,7 @@ const CourseSingle = () => {
         year: 'numeric'
     }) : "";
 
-    const tabs = ["description", "modules", "assignments", "tests"]
+    const tabs = ["description", "modules", "assignments", "tests", "attendance"]
 
     if (loading) {
         return (
@@ -226,6 +233,68 @@ const CourseSingle = () => {
                                     </button>
                                 </Link>
                             ))}
+                        </div>
+                    )}
+
+                    {activeTab === "attendance" && (
+                        <div className='bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden'>
+                            <div className='p-6 border-b border-gray-50 flex items-center justify-between bg-gray-50/50'>
+                                <h3 className='font-bold text-gray-900'>My Attendance History</h3>
+                                <div className='flex gap-4'>
+                                    <div className='flex items-center gap-2'>
+                                        <div className='w-3 h-3 rounded-full bg-green-500'></div>
+                                        <span className='text-xs font-bold text-gray-600'>
+                                            Present: {attendance.filter(a => a.status === 'present').length}
+                                        </span>
+                                    </div>
+                                    <div className='flex items-center gap-2'>
+                                        <div className='w-3 h-3 rounded-full bg-red-500'></div>
+                                        <span className='text-xs font-bold text-gray-600'>
+                                            Absent: {attendance.filter(a => a.status === 'absent').length}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className='overflow-x-auto'>
+                                <table className='w-full text-left'>
+                                    <thead>
+                                        <tr className='bg-gray-50/30 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-50'>
+                                            <th className='p-6'>Date</th>
+                                            <th className='p-6'>Status</th>
+                                            <th className='p-6'>Remarks</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className='divide-y divide-gray-50'>
+                                        {attendance.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="3" className='p-12 text-center text-gray-400 font-medium italic'>
+                                                    No attendance records found for this course.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            attendance.map((record, idx) => (
+                                                <tr key={idx} className='hover:bg-gray-50/50 transition-colors'>
+                                                    <td className='p-6 text-sm font-bold text-gray-900'>
+                                                        {new Date(record.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                                                    </td>
+                                                    <td className='p-6'>
+                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border
+                                                            ${record.status === 'present' ? 'bg-green-50 text-green-600 border-green-100' : 
+                                                              record.status === 'absent' ? 'bg-red-50 text-red-600 border-red-100' : 
+                                                              'bg-amber-50 text-amber-600 border-amber-100'}
+                                                        `}>
+                                                            {record.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className='p-6 text-sm text-gray-500 font-medium'>
+                                                        {record.remarks || '-'}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )}
 
