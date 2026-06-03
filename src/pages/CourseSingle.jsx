@@ -2,25 +2,19 @@ import React, { useEffect, useState } from 'react'
 import { getCourseById } from '../API/course.api'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { allModules } from '../API/module.api'
-import { getAssignmentsByCourse } from '../API/assignment.api'
-import { getTestsByCourse } from '../API/test.api'
-import { getMyAttendance } from '../API/attendance.api'
 import { getNotesByCourse } from '../API/note.api'
 import { 
-    MdAssignment, 
-    MdQuiz, 
     MdMenuBook, 
     MdDescription, 
     MdChevronRight, 
-    MdAccessTime, 
-    MdGrade, 
-    MdCheckCircle, 
-    MdCancel, 
-    MdAccessAlarms,
     MdOutlineLibraryBooks,
     MdOutlineAttachFile,
     MdOutlinePlayCircleOutline,
-    MdOpenInNew
+    MdOpenInNew,
+    MdArrowBack,
+    MdOutlineCollectionsBookmark,
+    MdOutlineClass,
+    MdOutlineLayers
 } from 'react-icons/md'
 
 const CourseSingle = () => {
@@ -28,9 +22,6 @@ const CourseSingle = () => {
     const navigate = useNavigate()
     const [course, setCourse] = useState("")
     const [modules, setModules] = useState([])
-    const [assignments, setAssignments] = useState([])
-    const [tests, setTests] = useState([])
-    const [attendance, setAttendance] = useState([])
     const [materials, setMaterials] = useState([])
     const [activeTab, setActiveTab] = useState('description')
     const [loading, setLoading] = useState(true)
@@ -39,12 +30,9 @@ const CourseSingle = () => {
         const fetchCourseData = async () => {
             try {
                 setLoading(true)
-                const [courseRes, modulesRes, assignmentsRes, testsRes, attendanceRes, materialsRes] = await Promise.all([
+                const [courseRes, modulesRes, materialsRes] = await Promise.all([
                     getCourseById(courseID),
                     allModules(courseID).catch(() => ({ data: { modules: [] } })),
-                    getAssignmentsByCourse(courseID).catch(() => ({ data: { assignments: [] } })),
-                    getTestsByCourse(courseID).catch(() => ({ data: { tests: [] } })),
-                    getMyAttendance(courseID).catch(() => ({ attendance: [] })),
                     getNotesByCourse(courseID).catch(() => ({ data: { notes: [] } }))
                 ]);
 
@@ -52,18 +40,6 @@ const CourseSingle = () => {
                 
                 if (Array.isArray(modulesRes.data.modules)) {
                     setModules(modulesRes.data.modules);
-                }
-                
-                if (Array.isArray(assignmentsRes.data.assignments)) {
-                    setAssignments(assignmentsRes.data.assignments);
-                }
-
-                if (Array.isArray(testsRes.data.tests)) {
-                    setTests(testsRes.data.tests);
-                }
-
-                if (attendanceRes && attendanceRes.attendance) {
-                    setAttendance(attendanceRes.attendance);
                 }
 
                 if (materialsRes && materialsRes.data?.notes) {
@@ -78,294 +54,235 @@ const CourseSingle = () => {
         fetchCourseData()
     }, [courseID])
 
-    // Converting Date into proper format
-    const formattedDate = course.createdAt ? new Date(course.createdAt).toLocaleDateString('en-GB', {
+    const formattedDate = course.createdAt ? new Date(course.createdAt).toLocaleDateString('en-IN', {
         day: 'numeric',
-        month: 'long',
+        month: 'short',
         year: 'numeric'
     }) : "";
 
-    const tabs = ["description", "modules", "assignments", "tests", "attendance", "materials"]
+    const tabs = [
+        { id: "description", label: "Overview", icon: MdDescription },
+        { id: "modules", label: "Curriculum", icon: MdOutlineLayers },
+        { id: "materials", label: "Resources", icon: MdOutlineLibraryBooks }
+    ];
 
     if (loading) {
         return (
-            <div className="h-full w-full bg-white rounded-xl p-8 animate-pulse space-y-8">
-                <div className="h-32 bg-gray-100 rounded-2xl w-full"></div>
-                <div className="h-10 bg-gray-50 rounded-lg w-1/2"></div>
-                <div className="space-y-4">
-                    <div className="h-20 bg-gray-50 rounded-xl w-full"></div>
-                    <div className="h-20 bg-gray-50 rounded-xl w-full"></div>
+            <div className="min-h-screen bg-[#F9FAFB] p-4 sm:p-6 lg:p-8 animate-pulse space-y-8">
+                <div className="h-24 bg-white rounded-[32px] w-full"></div>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="lg:col-span-8 space-y-8">
+                        <div className="h-64 bg-white rounded-[32px]"></div>
+                        <div className="h-96 bg-white rounded-[32px]"></div>
+                    </div>
+                    <div className="lg:col-span-4 h-80 bg-white rounded-[32px]"></div>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className='h-full w-full bg-gray-50/50 rounded-xl flex flex-col overflow-hidden'>
+        <div className='min-h-screen bg-[#F9FAFB] flex flex-col'>
             
-            {/* Course Header */}
-            <div className='bg-white border-b border-gray-100 px-6 py-8 md:px-10'>
+            {/* ── Enhanced Course Header ── */}
+            <div className='bg-white border-b border-slate-100 px-4 py-6 sm:px-6 sm:py-8 md:px-10'>
                 <div className='max-w-7xl mx-auto'>
-                    <div className='flex flex-col md:flex-row md:items-center justify-between gap-6'>
-                        <div className='space-y-2'>
-                            <h1 className='text-3xl font-black text-gray-900 tracking-tight'>{course.title}</h1>
-                            <div className='flex items-center gap-4 text-sm text-gray-500 font-medium'>
-                                <span className='flex items-center gap-1.5'>
-                                    <MdMenuBook className="text-indigo-600" /> Course Code: {course.courseCode || "N/A"}
+                    <div className='flex flex-col gap-6 sm:gap-8'>
+                        <button 
+                            onClick={() => navigate('/student')}
+                            className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors w-fit"
+                        >
+                            <MdArrowBack className="w-3.5 h-3.5 sm:w-4 h-4" /> Back to My Learning
+                        </button>
+                        
+                        <div className="space-y-4 sm:space-y-6">
+                            <h1 className='text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight'>
+                                {course.title}
+                            </h1>
+                            
+                            <div className='flex flex-wrap items-center gap-x-6 gap-y-3 text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest'>
+                                <span className='flex items-center gap-2'>
+                                    <div className='w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0'>
+                                        <MdMenuBook className="w-3 h-3 sm:w-3.5 h-3.5" />
+                                    </div>
+                                    ID: {course.courseCode || "N/A"}
                                 </span>
-                                <span className='w-1 h-1 bg-gray-300 rounded-full'></span>
-                                <span>Published on {formattedDate}</span>
+                                <span className='hidden sm:block w-1 h-1 bg-slate-200 rounded-full'></span>
+                                <span className='flex items-center gap-2'>
+                                    <div className='w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0'>
+                                        <MdOutlineClass className="w-3 h-3 sm:w-3.5 h-3.5" />
+                                    </div>
+                                    {modules.length} Modules
+                                </span>
+                                <span className='hidden sm:block w-1 h-1 bg-slate-200 rounded-full'></span>
+                                <span className="flex items-center gap-2">
+                                   Added {formattedDate}
+                                </span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Tabs Navigation */}
-            <div className='bg-white px-6 md:px-10 border-b border-gray-100'>
-                <div className='max-w-7xl mx-auto flex gap-8'>
+            {/* ── Modern Tabs Navigation (Responsive Scroll) ── */}
+            <div className='bg-white border-b border-slate-100 sticky top-0 z-20'>
+                <div className='max-w-7xl mx-auto overflow-x-auto scrollbar-hide flex px-4 sm:px-6 md:px-10 gap-6 sm:gap-10'>
                     {tabs.map((tab) => (
                         <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`pb-4 px-2 font-bold text-sm capitalize transition-all relative
-                                ${activeTab === tab
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`py-5 sm:py-6 px-1 font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] transition-all relative flex items-center gap-2 shrink-0 group
+                                ${activeTab === tab.id
                                     ? "text-indigo-600"
-                                    : "text-gray-400 hover:text-gray-600"
+                                    : "text-slate-400 hover:text-slate-600"
                                 }
                             `}
                         >
-                            {tab}
-                            {activeTab === tab && (
-                                <div className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-t-full"></div>
+                            <tab.icon className={`w-3.5 h-3.5 sm:w-4 h-4 ${activeTab === tab.id ? "text-indigo-600" : "text-slate-300 group-hover:text-slate-400"}`} />
+                            {tab.label}
+                            {activeTab === tab.id && (
+                                <div className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-t-full shadow-[0_-4px_10px_rgba(79,70,229,0.3)]"></div>
                             )}
                         </button>
                     ))}
                 </div>
             </div>
 
-            {/* Tab Content */}
-            <div className='flex-1 overflow-y-auto p-6 md:p-10'>
+            {/* ── Tab Content Area ── */}
+            <div className='flex-1 p-4 sm:p-8 md:p-10'>
                 <div className='max-w-7xl mx-auto'>
                     
+                    {/* Overview Tab */}
                     {activeTab === "description" && (
-                        <div className='bg-white rounded-2xl p-8 border border-gray-100 shadow-sm'>
-                            <div className='flex items-center gap-3 mb-6'>
-                                <div className='w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600'>
-                                    <MdDescription className="w-6 h-6" />
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+                            <div className='lg:col-span-8 bg-white rounded-3xl sm:rounded-[32px] p-6 sm:p-10 border border-slate-100 shadow-sm'>
+                                <div className='flex items-center gap-4 mb-6 sm:mb-8'>
+                                    <div className='w-10 h-10 sm:w-12 sm:h-12 bg-indigo-50 rounded-xl sm:rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm shrink-0'>
+                                        <MdDescription className="w-5 h-5 sm:w-6 h-6" />
+                                    </div>
+                                    <h2 className='text-xl sm:text-2xl font-black text-slate-900 tracking-tight'>Academic Syllabus</h2>
                                 </div>
-                                <h2 className='text-xl font-bold text-gray-900'>About this Course</h2>
+                                <div className='text-slate-600 leading-relaxed font-medium text-base sm:text-lg whitespace-pre-wrap'>
+                                    {course.description || "Comprehensive course details have not been finalized for this academic track."}
+                                </div>
                             </div>
-                            <p className='text-gray-700 leading-relaxed font-medium whitespace-pre-wrap'>
-                                {course.description || "No description available for this course."}
-                            </p>
+                            
+                            <aside className="lg:col-span-4 space-y-6">
+                                <div className="bg-indigo-600 rounded-3xl sm:rounded-[32px] p-6 sm:p-8 text-white shadow-xl shadow-indigo-100">
+                                    <h3 className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-indigo-200 mb-6">Course Stats</h3>
+                                    <div className="space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] sm:text-xs font-bold opacity-80 uppercase tracking-wider">Total Modules</span>
+                                            <span className="text-xl sm:text-2xl font-black">{modules.length}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] sm:text-xs font-bold opacity-80 uppercase tracking-wider">Resource Assets</span>
+                                            <span className="text-xl sm:text-2xl font-black">{materials.length}</span>
+                                        </div>
+                                    </div>
+                                    <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-indigo-500/50">
+                                        <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-indigo-200 mb-2">Instructor Note</p>
+                                        <p className="text-[11px] sm:text-xs font-medium leading-relaxed italic">
+                                            "Welcome to your professional learning journey. Progress through modules sequentially for optimal results."
+                                        </p>
+                                    </div>
+                                </div>
+                            </aside>
                         </div>
                     )}
 
+                    {/* Curriculum Tab */}
                     {activeTab === "modules" && (
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6'>
                             {modules.length === 0 ? (
-                                <div className="col-span-full bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
-                                    <p className="text-gray-400 font-medium italic">No modules have been added to this course yet.</p>
+                                <div className="col-span-full bg-white rounded-3xl sm:rounded-[40px] border border-slate-100 p-12 sm:p-20 text-center shadow-sm flex flex-col items-center justify-center">
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-50 rounded-3xl sm:rounded-[40px] flex items-center justify-center text-slate-200 mb-8">
+                                        <MdOutlineLayers className="w-10 h-10 sm:w-12 h-12" />
+                                    </div>
+                                    <h3 className="text-xl sm:text-2xl font-black text-slate-900">No Content Released</h3>
+                                    <p className="text-sm font-medium text-slate-500 mt-3 max-w-sm mx-auto">The curriculum for this course is currently under development.</p>
                                 </div>
                             ) : modules.map((module, index) => (
                                 <Link
                                     to={`/module/${module._id}`}
                                     key={module._id}
-                                    className='bg-white border border-gray-100 rounded-2xl p-5 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all group flex items-center gap-5'
+                                    className='bg-white border border-slate-100 rounded-3xl sm:rounded-[32px] p-5 sm:p-8 hover:shadow-xl hover:shadow-indigo-500/5 transition-all group flex items-center gap-4 sm:gap-6'
                                 >
-                                    <div className='w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-black group-hover:bg-indigo-600 group-hover:text-white transition-all'>
+                                    <div className='w-12 h-12 sm:w-16 sm:h-16 bg-slate-50 text-slate-400 rounded-2xl sm:rounded-[22px] flex items-center justify-center font-black text-base sm:text-lg group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm shrink-0'>
                                         {String(index + 1).padStart(2, '0')}
                                     </div>
                                     <div className='flex-1 min-w-0'>
-                                        <h3 className='font-bold text-gray-900 truncate group-hover:text-indigo-600 transition-colors'>{module.title}</h3>
-                                        <p className='text-xs text-gray-400 font-bold uppercase tracking-wider mt-1'>
-                                            {module.lessons?.length || 0} Lessons
-                                        </p>
+                                        <h3 className='text-base sm:text-lg font-extrabold text-slate-900 truncate group-hover:text-indigo-600 transition-colors leading-tight'>{module.title}</h3>
+                                        <div className='flex items-center gap-2 sm:gap-3 mt-1.5 sm:mt-2'>
+                                            <span className='px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest border border-indigo-100 shrink-0'>
+                                                Module
+                                            </span>
+                                            <span className='text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate'>
+                                                {module.lessons?.length || 0} Lessons
+                                            </span>
+                                        </div>
                                     </div>
-                                    <MdChevronRight className="text-gray-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all w-6 h-6" />
+                                    <div className='w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-indigo-50 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all shrink-0'>
+                                        <MdChevronRight size={20} className="sm:w-6 sm:h-6" />
+                                    </div>
                                 </Link>
                             ))}
                         </div>
                     )}
 
-                    {activeTab === "assignments" && (
-                        <div className='space-y-4'>
-                            {assignments.length === 0 ? (
-                                <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
-                                    <p className="text-gray-400 font-medium italic">No assignments for this course.</p>
-                                </div>
-                            ) : assignments.map((assignment) => (
-                                <Link
-                                    to={`/assignments/${assignment._id}`}
-                                    key={assignment._id}
-                                    className='bg-white border border-gray-100 rounded-2xl p-6 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all group flex flex-col md:flex-row md:items-center justify-between gap-6'
-                                >
-                                    <div className='flex items-center gap-5'>
-                                        <div className='w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center'>
-                                            <MdAssignment className="w-8 h-8" />
-                                        </div>
-                                        <div>
-                                            <h3 className='font-bold text-gray-900 group-hover:text-indigo-600 transition-colors'>{assignment.title}</h3>
-                                            <div className='flex items-center gap-4 mt-1'>
-                                                <span className='flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
-                                                    <MdAccessTime className="w-3.5 h-3.5" /> Due: {new Date(assignment.dueDate).toLocaleDateString()}
-                                                </span>
-                                                <span className='flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
-                                                    <MdGrade className="w-3.5 h-3.5" /> {assignment.maxMarks} Pts
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button className='px-6 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all'>
-                                        View & Submit
-                                    </button>
-                                </Link>
-                            ))}
-                        </div>
-                    )}
-
-                    {activeTab === "tests" && (
-                        <div className='space-y-4'>
-                            {tests.length === 0 ? (
-                                <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
-                                    <p className="text-gray-400 font-medium italic">No tests available for this course.</p>
-                                </div>
-                            ) : tests.filter(t => t.isPublished).map((test) => (
-                                <Link
-                                    to={`/student/take-test/${test._id}`}
-                                    key={test._id}
-                                    className='bg-white border border-gray-100 rounded-2xl p-6 hover:border-rose-200 hover:shadow-xl hover:shadow-rose-500/5 transition-all group flex flex-col md:flex-row md:items-center justify-between gap-6'
-                                >
-                                    <div className='flex items-center gap-5'>
-                                        <div className='w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center'>
-                                            <MdQuiz className="w-8 h-8" />
-                                        </div>
-                                        <div>
-                                            <h3 className='font-bold text-gray-900 group-hover:text-rose-600 transition-colors'>{test.title}</h3>
-                                            <div className='flex items-center gap-4 mt-1'>
-                                                <span className='flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
-                                                    <MdAccessTime className="w-3.5 h-3.5" /> {test.duration} Minutes
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button className='px-6 py-2 bg-rose-50 text-rose-600 rounded-xl text-sm font-bold group-hover:bg-rose-600 group-hover:text-white transition-all'>
-                                        Take Test
-                                    </button>
-                                </Link>
-                            ))}
-                        </div>
-                    )}
-
-                    {activeTab === "attendance" && (
-                        <div className='bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden'>
-                            <div className='p-6 border-b border-gray-50 flex items-center justify-between bg-gray-50/50'>
-                                <h3 className='font-bold text-gray-900'>My Attendance History</h3>
-                                <div className='flex gap-4'>
-                                    <div className='flex items-center gap-2'>
-                                        <div className='w-3 h-3 rounded-full bg-green-500'></div>
-                                        <span className='text-xs font-bold text-gray-600'>
-                                            Present: {attendance.filter(a => a.status === 'present').length}
-                                        </span>
-                                    </div>
-                                    <div className='flex items-center gap-2'>
-                                        <div className='w-3 h-3 rounded-full bg-red-500'></div>
-                                        <span className='text-xs font-bold text-gray-600'>
-                                            Absent: {attendance.filter(a => a.status === 'absent').length}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className='overflow-x-auto'>
-                                <table className='w-full text-left'>
-                                    <thead>
-                                        <tr className='bg-gray-50/30 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-50'>
-                                            <th className='p-6'>Date</th>
-                                            <th className='p-6'>Status</th>
-                                            <th className='p-6'>Remarks</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className='divide-y divide-gray-50'>
-                                        {attendance.length === 0 ? (
-                                            <tr>
-                                                <td colSpan="3" className='p-12 text-center text-gray-400 font-medium italic'>
-                                                    No attendance records found for this course.
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            attendance.map((record, idx) => (
-                                                <tr key={idx} className='hover:bg-gray-50/50 transition-colors'>
-                                                    <td className='p-6 text-sm font-bold text-gray-900'>
-                                                        {new Date(record.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-                                                    </td>
-                                                    <td className='p-6'>
-                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border
-                                                            ${record.status === 'present' ? 'bg-green-50 text-green-600 border-green-100' : 
-                                                              record.status === 'absent' ? 'bg-red-50 text-red-600 border-red-100' : 
-                                                              'bg-amber-50 text-amber-600 border-amber-100'}
-                                                        `}>
-                                                            {record.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className='p-6 text-sm text-gray-500 font-medium'>
-                                                        {record.remarks || '-'}
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )}
-
+                    {/* Resources Tab */}
                     {activeTab === "materials" && (
                         <div className='space-y-6'>
                             {materials.length === 0 ? (
-                                <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
-                                    <MdOutlineLibraryBooks className="w-16 h-16 text-gray-100 mx-auto mb-4" />
-                                    <p className="text-gray-400 font-medium italic">No learning materials shared yet.</p>
+                                <div className="bg-white rounded-3xl sm:rounded-[40px] border border-slate-100 p-12 sm:p-20 text-center shadow-sm flex flex-col items-center justify-center">
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-50 rounded-3xl sm:rounded-[40px] flex items-center justify-center text-slate-200 mb-8">
+                                        <MdOutlineCollectionsBookmark className="w-10 h-10 sm:w-12 h-12" />
+                                    </div>
+                                    <h3 className="text-xl sm:text-2xl font-black text-slate-900">Knowledge Repository</h3>
+                                    <p className="text-sm font-medium text-slate-500 mt-3 max-w-sm mx-auto">Supplemental learning materials and assets will appear here.</p>
                                 </div>
                             ) : (
-                                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                                <div className='grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6'>
                                     {materials.map((material) => (
                                         <div 
                                             key={material._id}
-                                            className='bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all group'
+                                            className='bg-white border border-slate-100 rounded-3xl sm:rounded-[32px] p-6 sm:p-8 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 hover:scale-[1.01] transition-all group'
                                         >
-                                            <div className='flex items-start gap-4'>
-                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                                            <div className='flex items-start gap-4 sm:gap-6'>
+                                                <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-colors ${
                                                     material.type === 'link' ? 'bg-rose-50 text-rose-600' : 
                                                     material.type === 'resource' ? 'bg-blue-50 text-blue-600' : 
                                                     'bg-indigo-50 text-indigo-600'
                                                 }`}>
-                                                    {material.type === 'link' ? <MdOutlinePlayCircleOutline size={24} /> : 
-                                                     material.type === 'resource' ? <MdOutlineAttachFile size={24} /> : 
-                                                     <MdOutlineDescription size={24} />}
+                                                    {material.type === 'link' ? <MdOutlinePlayCircleOutline className="w-6 h-6 sm:w-7 sm:h-7" /> : 
+                                                     material.type === 'resource' ? <MdOutlineAttachFile className="w-6 h-6 sm:w-7 sm:h-7" /> : 
+                                                     <MdOutlineDescription className="w-6 h-6 sm:w-7 sm:h-7" />}
                                                 </div>
                                                 <div className='flex-1 min-w-0'>
-                                                    <div className='flex items-center gap-2 flex-wrap'>
-                                                        <h3 className='font-bold text-gray-900 group-hover:text-indigo-600 transition-colors truncate'>{material.title}</h3>
-                                                        <span className='text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-gray-50 text-gray-400 rounded-full border border-gray-100'>
+                                                    <div className='flex items-center gap-2 sm:gap-3 flex-wrap'>
+                                                        <h3 className='text-base sm:text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors truncate'>{material.title}</h3>
+                                                        <span className='text-[8px] sm:text-[9px] font-black uppercase tracking-[0.15em] px-2.5 py-1 bg-slate-50 text-slate-400 rounded-full border border-slate-100'>
                                                             {material.type}
                                                         </span>
                                                     </div>
-                                                    <div className='flex items-center gap-3 mt-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
-                                                        {material.chapter && <span>{material.chapter}</span>}
-                                                        {material.chapter && material.lessonName && <span className='w-1 h-1 bg-gray-300 rounded-full'></span>}
-                                                        {material.lessonName && <span>{material.lessonName}</span>}
+                                                    
+                                                    <div className='flex items-center gap-2 sm:gap-3 mt-1.5 sm:mt-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-slate-300 shrink-0'>
+                                                        {material.chapter && <span className='text-slate-400'>{material.chapter}</span>}
+                                                        {material.chapter && material.lessonName && <span className='w-1 h-1 bg-slate-200 rounded-full'></span>}
+                                                        {material.lessonName && <span className='text-slate-400'>{material.lessonName}</span>}
                                                     </div>
                                                     
-                                                    <p className='text-xs text-gray-600 font-medium mt-3 line-clamp-2 leading-relaxed'>
-                                                        {material.content}
-                                                    </p>
+                                                    {material.content && (
+                                                        <p className='text-xs sm:text-sm text-slate-500 font-medium mt-3 sm:mt-4 line-clamp-2 leading-relaxed'>
+                                                            {material.content}
+                                                        </p>
+                                                    )}
 
-                                                    <div className='mt-4 pt-4 border-t border-gray-50 flex items-center justify-between'>
-                                                        <div className='flex -space-x-2'>
-                                                            {material.attachments?.slice(0, 3).map((_, i) => (
-                                                                <div key={i} className='w-6 h-6 rounded-full bg-white border border-gray-100 flex items-center justify-center'>
-                                                                    <MdOutlineAttachFile size={10} className='text-gray-400' />
+                                                    <div className='mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-slate-50 flex items-center justify-between'>
+                                                        <div className='flex -space-x-2 sm:-space-x-3'>
+                                                            {material.attachments?.slice(0, 4).map((_, i) => (
+                                                                <div key={i} className='w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-300 shadow-sm'>
+                                                                    <MdOutlineAttachFile className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -375,9 +292,9 @@ const CourseSingle = () => {
                                                                 href={material.youtubeUrl} 
                                                                 target="_blank" 
                                                                 rel="noreferrer"
-                                                                className='flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-rose-600 hover:text-rose-700 transition-colors'
+                                                                className='flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-rose-50 text-rose-600 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] hover:bg-rose-600 hover:text-white transition-all shadow-sm'
                                                             >
-                                                                Watch Video <MdOpenInNew size={14} />
+                                                                Stream <MdOpenInNew className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                                             </a>
                                                         ) : material.attachments?.length > 0 ? (
                                                             <div className='flex gap-2'>
@@ -387,10 +304,10 @@ const CourseSingle = () => {
                                                                         href={file.secure_url} 
                                                                         target="_blank" 
                                                                         rel="noreferrer"
-                                                                        className='p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all'
+                                                                        className='w-8 h-8 sm:w-10 sm:h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm'
                                                                         title={file.original_filename}
                                                                     >
-                                                                        <MdOutlineAttachFile size={16} />
+                                                                        <MdOutlineAttachFile className="w-4 h-4 sm:w-5 sm:h-5" />
                                                                     </a>
                                                                 ))}
                                                             </div>
@@ -411,4 +328,4 @@ const CourseSingle = () => {
     )
 }
 
-export default CourseSingle
+export default CourseSingle;
