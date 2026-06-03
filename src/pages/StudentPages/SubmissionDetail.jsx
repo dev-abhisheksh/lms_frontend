@@ -4,7 +4,10 @@ import { getSingleSubmission } from '../../API/submission.api';
 import { 
     MdArrowBack, MdDownload, MdGrade, MdAccessTime, 
     MdCheckCircle, MdNotes, MdOutlineFeedback, MdCalendarToday, 
-    MdMenuBook, MdOutlineDescription, MdAttachment, MdInfoOutline 
+    MdMenuBook, MdOutlineDescription, MdAttachment, MdInfoOutline,
+    MdOpenInNew,
+    MdTimer,
+    MdOutlineAssignmentTurnedIn
 } from 'react-icons/md';
 
 const SubmissionDetail = () => {
@@ -36,27 +39,25 @@ const SubmissionDetail = () => {
     const getStatusStyle = (status) => {
         switch (status) {
             case 'graded':
-                return { color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-100', label: 'Graded', icon: MdGrade };
+                return { color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100', label: 'Graded', icon: MdGrade };
             case 'late':
-                return { color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-100', label: 'Late Submission', icon: MdAccessTime };
+                return { color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', label: 'Late Submission', icon: MdTimer };
             case 'submitted':
             default:
-                return { color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-100', label: 'Submitted', icon: MdCheckCircle };
+                return { color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', label: 'Processing', icon: MdCheckCircle };
         }
     };
 
     if (loading) {
         return (
-            <div className="h-full w-full bg-white rounded-2xl shadow-sm p-8 flex flex-col gap-6 animate-pulse">
-                <div className="h-8 bg-gray-200 rounded-lg w-1/4"></div>
-                <div className="h-32 bg-gray-100 rounded-2xl w-full"></div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 space-y-6">
-                        <div className="h-80 bg-gray-50 rounded-2xl"></div>
+            <div className="min-h-screen bg-[#F9FAFB] p-6 lg:p-8 animate-pulse space-y-8">
+                <div className="h-20 bg-white rounded-[32px] w-full"></div>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="lg:col-span-8 space-y-8">
+                        <div className="h-64 bg-white rounded-[40px]"></div>
+                        <div className="h-40 bg-white rounded-[40px]"></div>
                     </div>
-                    <div className="space-y-6">
-                        <div className="h-64 bg-gray-50 rounded-2xl"></div>
-                    </div>
+                    <div className="lg:col-span-4 h-96 bg-white rounded-[40px]"></div>
                 </div>
             </div>
         );
@@ -64,17 +65,17 @@ const SubmissionDetail = () => {
 
     if (error || !submission) {
         return (
-            <div className="h-full w-full bg-white rounded-2xl shadow-sm p-12 flex flex-col items-center justify-center text-center">
-                <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mb-6">
-                    <MdInfoOutline className="w-10 h-10" />
+            <div className="min-h-screen bg-[#F9FAFB] p-8 flex flex-col items-center justify-center text-center">
+                <div className="w-24 h-24 bg-rose-50 text-rose-500 rounded-[40px] flex items-center justify-center mb-8 shadow-sm">
+                    <MdInfoOutline className="w-12 h-12" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Submission Not Found</h2>
-                <p className="text-gray-500 mb-8 max-w-sm">{error || "The submission you're looking for doesn't exist or you don't have access to it."}</p>
+                <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">Submission Not Found</h2>
+                <p className="text-slate-500 mb-8 max-w-sm font-medium">{error || "The record you're looking for doesn't exist or access is restricted."}</p>
                 <button 
                     onClick={() => navigate('/submissions')}
-                    className="px-6 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all font-semibold flex items-center gap-2"
+                    className="px-8 py-4 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 flex items-center gap-2"
                 >
-                    <MdArrowBack /> Back to My Submissions
+                    <MdArrowBack /> Return to Archive
                 </button>
             </div>
         );
@@ -87,113 +88,122 @@ const SubmissionDetail = () => {
     const submitDate = new Date(submittedAt);
 
     return (
-        <div className="h-full w-full bg-gray-50/50 rounded-2xl flex flex-col overflow-y-auto scrollbar-hide">
+        <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
             
-            {/* ── Header Area ───────────────────────────────────────────── */}
-            <div className="bg-white border-b border-gray-100 px-6 py-6 md:px-10">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div className="space-y-2">
+            {/* ── Page Header ── */}
+            <div className="bg-white border-b border-slate-100 px-6 py-8 md:px-10">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-8">
+                    <div className="space-y-4">
                         <button 
                             onClick={() => navigate('/submissions')}
-                            className="flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 transition-colors mb-2"
+                            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors"
                         >
-                            <MdArrowBack /> Back to My Submissions
+                            <MdArrowBack className="w-4 h-4" /> Return to Archive
                         </button>
-                        <div className="flex flex-wrap items-center gap-3">
-                            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
-                                {assignment?.title}
-                            </h1>
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusStyle.bg} ${statusStyle.color} ${statusStyle.border}`}>
-                                {statusStyle.label}
-                            </span>
+                        <div>
+                            <div className="flex flex-wrap items-center gap-4 mb-2">
+                                <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+                                    {assignment?.title}
+                                </h1>
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${statusStyle.bg} ${statusStyle.color} ${statusStyle.border}`}>
+                                    {statusStyle.label}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-3 text-sm font-bold text-slate-400">
+                                <MdMenuBook className="text-indigo-500" /> {assignment?.course?.title}
+                            </div>
                         </div>
-                        <p className="text-sm text-gray-500 flex items-center gap-1">
-                            <MdMenuBook className="text-indigo-500" /> {assignment?.course?.title}
-                        </p>
                     </div>
 
                     {status === 'graded' && (
-                        <div className="shrink-0 bg-white px-10 py-5 rounded-2xl border-2 border-emerald-500 text-center shadow-xl shadow-emerald-500/10">
-                            <span className="block text-[10px] font-bold text-emerald-600 uppercase tracking-[0.2em] mb-1">Final Score</span>
+                        <div className="bg-white px-10 py-6 rounded-[28px] border border-green-100 text-center shadow-xl shadow-green-100/50 min-w-[180px]">
+                            <span className="block text-[10px] font-black text-green-600 uppercase tracking-[0.2em] mb-2">Final Score</span>
                             <div className="flex items-baseline justify-center gap-1">
-                                <span className="text-4xl font-black text-gray-900">{grade}</span>
-                                <span className="text-xl font-bold text-gray-400">/ {assignment?.maxMarks}</span>
+                                <span className="text-4xl font-black text-slate-900">{grade}</span>
+                                <span className="text-slate-300 font-bold text-lg">/ {assignment?.maxMarks}</span>
                             </div>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* ── Content Grid ──────────────────────────────────────────── */}
-            <div className="p-6 md:p-10">
+            {/* ── Main Content Area ── */}
+            <div className="p-6 md:p-10 flex-1 overflow-y-auto">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
-                    {/* Main Content (Left) */}
+                    {/* Left Side: Body Content (lg:col-span-8) */}
                     <div className="lg:col-span-8 space-y-8">
                         
-                        {/* Instructor's Feedback */}
-                        {feedback ? (
-                            <section className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 md:p-8 relative overflow-hidden">
-                                <div className="absolute -top-4 -right-4 opacity-5">
-                                    <MdOutlineFeedback className="w-32 h-32" />
-                                </div>
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-50">
+                        {/* Instructor's Feedback Showcase */}
+                        {status === 'graded' && (
+                            <div className={`rounded-[32px] p-8 border ${feedback ? 'bg-indigo-50 border-indigo-100' : 'bg-slate-50 border-slate-100'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${feedback ? 'bg-white text-indigo-600' : 'bg-white text-slate-400'}`}>
                                         <MdOutlineFeedback className="w-6 h-6" />
                                     </div>
-                                    <h2 className="text-lg font-bold text-emerald-900">Instructor's Feedback</h2>
+                                    <h2 className={`text-lg font-black tracking-tight ${feedback ? 'text-indigo-900' : 'text-slate-900'}`}>
+                                        {feedback ? "Instructor's Remarks" : "Assessment Feedback"}
+                                    </h2>
                                 </div>
-                                <p className="text-emerald-800 leading-relaxed font-medium italic relative z-10">
-                                    "{feedback}"
-                                </p>
-                            </section>
-                        ) : status === 'graded' ? (
-                            <section className="bg-gray-50 border border-gray-100 rounded-2xl p-6 flex items-center gap-4">
-                                <MdInfoOutline className="text-gray-400 w-6 h-6" />
-                                <p className="text-sm text-gray-500 font-medium italic">No written feedback provided by the instructor.</p>
-                            </section>
-                        ) : null}
-
-                        {/* Text Answer */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30 flex items-center gap-2">
-                                <MdNotes className="text-indigo-600" />
-                                <h2 className="font-bold text-gray-900">Your Response</h2>
+                                {feedback ? (
+                                    <p className="text-indigo-800 text-sm md:text-base leading-relaxed font-medium italic italic px-2">
+                                        "{feedback}"
+                                    </p>
+                                ) : (
+                                    <p className="text-slate-400 text-sm font-medium italic px-2">
+                                        The instructor has finalized your grade without additional written commentary.
+                                    </p>
+                                )}
                             </div>
-                            <div className="p-6 md:p-8">
+                        )}
+
+                        {/* Submission Body */}
+                        <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
+                            <div className="px-8 py-6 border-b border-slate-50 bg-slate-50/50 flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                    <MdNotes className="w-5 h-5" />
+                                </div>
+                                <h2 className="text-lg font-bold tracking-tight text-slate-900">Your Response</h2>
+                            </div>
+                            <div className="p-8 md:p-10">
                                 {textAnswer ? (
-                                    <div className="prose prose-indigo max-w-none text-gray-700 whitespace-pre-wrap font-medium">
+                                    <div className="text-slate-700 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap">
                                         {textAnswer}
                                     </div>
                                 ) : (
-                                    <p className="text-gray-400 italic text-center py-4">No written response provided.</p>
+                                    <div className="text-center py-10">
+                                        <MdInfoOutline className="w-12 h-12 text-slate-100 mx-auto mb-4" />
+                                        <p className="text-slate-400 font-medium italic">No written response was included with this submission.</p>
+                                    </div>
                                 )}
                             </div>
                         </div>
 
-                        {/* Files */}
+                        {/* Attached Files */}
                         {files && files.length > 0 && (
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30 flex items-center gap-2">
-                                    <MdAttachment className="text-blue-600" />
-                                    <h2 className="font-bold text-gray-900">Attached Documents</h2>
+                            <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
+                                <div className="px-8 py-6 border-b border-slate-50 bg-slate-50/50 flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                                        <MdAttachment className="w-5 h-5" />
+                                    </div>
+                                    <h2 className="text-lg font-bold tracking-tight text-slate-900">Submitted Assets</h2>
                                 </div>
-                                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {files.map((file, idx) => (
                                         <a 
                                             key={idx}
                                             href={file.url || file.secure_url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center gap-4 p-4 border border-gray-100 rounded-xl hover:border-indigo-200 hover:bg-indigo-50/10 transition-all group"
+                                            className="flex items-center gap-4 p-5 bg-white border border-slate-100 rounded-2xl hover:border-indigo-200 hover:bg-indigo-50/30 hover:scale-[1.02] transition-all group"
                                         >
-                                            <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 group-hover:text-indigo-600">
-                                                <MdDownload className="w-5 h-5" />
+                                            <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-300 group-hover:text-indigo-600 group-hover:bg-white transition-colors">
+                                                <MdDownload className="w-6 h-6" />
                                             </div>
-                                            <div className="min-w-0">
-                                                <p className="text-sm font-bold text-gray-900 truncate">{file.original_filename || `Attachment ${idx + 1}`}</p>
-                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                                                    {(file.bytes / 1024).toFixed(0)} KB • Download
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-bold text-slate-900 truncate">{file.original_filename || `Asset ${idx + 1}`}</p>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-0.5">
+                                                    Archive Asset • {(file.bytes / 1024).toFixed(0)} KB
                                                 </p>
                                             </div>
                                         </a>
@@ -203,60 +213,61 @@ const SubmissionDetail = () => {
                         )}
                     </div>
 
-                    {/* Meta Sidebar (Right) */}
-                    <div className="lg:col-span-4 space-y-6">
+                    {/* Right Side: Metadata (lg:col-span-4) */}
+                    <div className="lg:col-span-4 space-y-8">
                         
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
-                            <h3 className="font-bold text-gray-900 text-lg border-b border-gray-50 pb-4">Timeline</h3>
+                        {/* Timeline Specs */}
+                        <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 p-8 space-y-8">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 border-b border-slate-50 pb-6">Timeline Records</h3>
                             
                             <div className="space-y-6">
-                                <div className="flex items-start gap-4">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${status === 'late' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                        <MdCheckCircle />
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${status === 'late' ? 'bg-rose-50 text-rose-600' : 'bg-green-50 text-green-600'}`}>
+                                        <MdOutlineAssignmentTurnedIn className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Submitted On</p>
-                                        <p className="text-sm font-bold text-gray-900">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Handed In</p>
+                                        <p className="text-sm font-bold text-slate-900">
                                             {submitDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                         </p>
-                                        <p className="text-[10px] text-gray-500 font-medium">
+                                        <p className="text-[10px] font-medium text-slate-500 mt-0.5">
                                             {submitDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="flex items-start gap-4">
-                                    <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400">
-                                        <MdCalendarToday />
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 shrink-0">
+                                        <MdCalendarToday className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Deadline</p>
-                                        <p className="text-sm font-bold text-gray-900">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Deadline Reference</p>
+                                        <p className="text-sm font-bold text-slate-900">
                                             {dueDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                         </p>
-                                        <p className="text-[10px] text-gray-500 font-medium">
+                                        <p className="text-[10px] font-medium text-slate-500 mt-0.5">
                                             {dueDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="pt-6 border-t border-gray-50 flex items-center justify-between">
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Submission ID</span>
-                                <span className="text-[10px] font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
-                                    #{submissionId.slice(-6).toUpperCase()}
+                            <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Log ID</span>
+                                <span className="text-[10px] font-mono font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                                    #{submissionId.slice(-8).toUpperCase()}
                                 </span>
                             </div>
                         </div>
 
-                        {/* Assignment Link Card */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                            <h4 className="font-bold text-gray-900 text-sm mb-4">Need to review?</h4>
+                        {/* Navigation Card */}
+                        <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 p-8">
+                            <h4 className="font-black text-slate-900 text-sm mb-4 tracking-tight">Post-Submission</h4>
                             <button 
                                 onClick={() => navigate(`/assignments/${assignment?._id}`)}
-                                className="w-full py-2.5 bg-gray-50 border border-gray-200 text-gray-600 rounded-xl font-bold text-xs hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
+                                className="w-full py-4 bg-slate-50 border border-slate-100 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] hover:bg-white hover:border-indigo-200 hover:text-indigo-600 transition-all flex items-center justify-center gap-2"
                             >
-                                <MdOutlineDescription /> View Original Assignment
+                                <MdOutlineDescription className="w-4 h-4" /> Original Brief
                             </button>
                         </div>
                     </div>
@@ -267,4 +278,3 @@ const SubmissionDetail = () => {
 };
 
 export default SubmissionDetail;
-

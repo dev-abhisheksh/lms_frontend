@@ -1,13 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { mySubmissions } from '../../API/submission.api';
-import { MdOutlineUploadFile, MdGrade, MdAccessTime, MdCheckCircle, MdSearch } from 'react-icons/md';
+import { 
+    MdOutlineUploadFile, 
+    MdGrade, 
+    MdAccessTime, 
+    MdCheckCircle, 
+    MdSearch, 
+    MdOutlineHistory,
+    MdFilterList,
+    MdArrowForward,
+    MdCalendarToday,
+    MdOutlineSchool,
+    MdTimer,
+    MdOutlineAssignmentTurnedIn
+} from 'react-icons/md';
 
 const StudentSubmissions = () => {
     const [submissions, setSubmissions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filter, setFilter] = useState('all'); // all, graded, submitted, late
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -27,135 +41,170 @@ const StudentSubmissions = () => {
         fetchMySubmissions();
     }, []);
 
-    const filteredSubmissions = submissions.filter(sub => 
-        sub.assignment?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sub.assignment?.course?.title?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredSubmissions = submissions.filter(sub => {
+        const matchesSearch = (sub.assignment?.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                             (sub.assignment?.course?.title?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+        
+        const matchesFilter = filter === 'all' || sub.status === filter;
+        
+        return matchesSearch && matchesFilter;
+    });
 
     const getStatusStyle = (status) => {
         switch (status) {
             case 'graded':
-                return { color: 'text-green-700', bg: 'bg-green-100', label: 'Graded', icon: MdGrade };
+                return { color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100', label: 'Graded', icon: MdGrade };
             case 'late':
-                return { color: 'text-red-700', bg: 'bg-red-100', label: 'Late Submission', icon: MdAccessTime };
+                return { color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', label: 'Late Submission', icon: MdTimer };
             case 'submitted':
             default:
-                return { color: 'text-blue-700', bg: 'bg-blue-100', label: 'Submitted', icon: MdCheckCircle };
+                return { color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', label: 'Submitted', icon: MdCheckCircle };
         }
     };
 
     return (
-        <div className="h-full w-full bg-white rounded-xl shadow-sm flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="p-6 border-b border-gray-100">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">My Submissions</h1>
-                        <p className="text-sm text-gray-500 mt-1">
-                            Review your submitted assignments and grades
-                        </p>
-                    </div>
-                    
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <MdSearch className="h-5 w-5 text-gray-400" />
+        <div className="min-h-screen bg-[#F9FAFB] p-4 sm:p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto space-y-8">
+                
+                {/* ── Page Header ── */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-[20px] bg-white border border-slate-100 shadow-sm flex items-center justify-center text-indigo-600">
+                            <MdOutlineHistory className="w-7 h-7" />
                         </div>
-                        <input
-                            type="text"
-                            placeholder="Search submissions..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        />
+                        <div>
+                            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Submission Archive</h1>
+                            <p className="text-sm font-medium text-slate-500 mt-1">
+                                A comprehensive history of your academic work and evaluations
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="hidden sm:flex items-center gap-3 px-6 bg-white border border-slate-200 rounded-2xl shadow-sm h-14">
+                        <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
+                            <MdOutlineAssignmentTurnedIn className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Turned In</p>
+                            <p className="text-sm font-bold text-slate-900">{submissions.length} Tasks</p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Content */}
-            <div className="flex-1 p-6 overflow-y-auto bg-gray-50/50">
-                {loading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[...Array(6)].map((_, i) => (
-                            <div key={i} className="bg-white p-5 rounded-xl border border-gray-100 h-40 animate-pulse flex flex-col justify-between">
-                                <div className="space-y-3">
-                                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                                    <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+                {/* ── Filters & Search ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <div className="lg:col-span-8 bg-white p-4 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4">
+                        <MdSearch className="w-5 h-5 text-slate-300 ml-2" />
+                        <input 
+                            type="text" 
+                            placeholder="Search by assignment or course title..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="flex-1 bg-transparent text-sm font-bold text-slate-900 focus:outline-none placeholder:text-slate-300 placeholder:font-medium"
+                        />
+                    </div>
+
+                    <div className="lg:col-span-4 bg-white p-4 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4">
+                        <MdFilterList className="w-5 h-5 text-slate-300 ml-2" />
+                        <select
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value)}
+                            className="flex-1 bg-transparent text-sm font-bold text-slate-900 focus:outline-none cursor-pointer"
+                        >
+                            <option value="all">All Submissions</option>
+                            <option value="submitted">Processing</option>
+                            <option value="graded">Graded</option>
+                            <option value="late">Submitted Late</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* ── Main Content ── */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {loading ? (
+                        [...Array(6)].map((_, i) => (
+                            <div key={i} className="bg-white rounded-[40px] border border-slate-100 p-8 h-64 animate-pulse space-y-4">
+                                <div className="flex justify-between">
+                                    <div className="w-24 h-6 bg-slate-50 rounded-full"></div>
+                                    <div className="w-16 h-6 bg-slate-50 rounded-full"></div>
                                 </div>
-                                <div className="h-8 bg-gray-50 rounded w-full mt-4"></div>
+                                <div className="w-full h-8 bg-slate-50 rounded-xl"></div>
+                                <div className="w-3/4 h-6 bg-slate-50 rounded-lg"></div>
+                                <div className="pt-4 border-t border-slate-50 w-full h-12 mt-auto"></div>
                             </div>
-                        ))}
-                    </div>
-                ) : error ? (
-                    <div className="text-center py-12">
-                        <div className="text-red-500 mb-2">⚠️</div>
-                        <p className="text-gray-600">{error}</p>
-                    </div>
-                ) : filteredSubmissions.length === 0 ? (
-                    <div className="text-center py-20">
-                        <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <MdOutlineUploadFile className="w-8 h-8" />
+                        ))
+                    ) : error ? (
+                        <div className="col-span-full bg-rose-50 border border-rose-100 rounded-[32px] p-12 text-center">
+                            <p className="text-rose-900 font-bold text-lg mb-2">{error}</p>
+                            <button onClick={() => window.location.reload()} className="text-rose-600 font-black text-[10px] uppercase tracking-widest hover:underline">
+                                Reload Page
+                            </button>
                         </div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">No submissions yet</h3>
-                        <p className="text-gray-500 text-sm">
-                            {searchTerm ? "No submissions match your search" : "When you submit assignments, they will appear here"}
-                        </p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredSubmissions.map((sub) => {
-                            const statusStyle = getStatusStyle(sub.status);
-                            const StatusIcon = statusStyle.icon;
+                    ) : filteredSubmissions.length === 0 ? (
+                        <div className="col-span-full bg-white rounded-[40px] border border-slate-100 p-20 text-center shadow-sm flex flex-col items-center justify-center">
+                            <div className="w-24 h-24 bg-slate-50 rounded-[40px] flex items-center justify-center text-slate-200 mb-8">
+                                <MdOutlineUploadFile className="w-12 h-12" />
+                            </div>
+                            <h3 className="text-2xl font-black text-slate-900">No Submissions Located</h3>
+                            <p className="text-sm font-medium text-slate-500 mt-3 max-w-sm mx-auto leading-relaxed">
+                                {searchTerm || filter !== 'all' 
+                                    ? "Adjust your filters or search terms to find specific submissions." 
+                                    : "You haven't submitted any assignments yet. Once you do, your work will be archived here."}
+                            </p>
+                        </div>
+                    ) : (
+                        filteredSubmissions.map((sub) => {
+                            const status = getStatusStyle(sub.status);
+                            const StatusIcon = status.icon;
 
                             return (
                                 <div 
                                     key={sub._id} 
-                                    className="bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all group flex flex-col"
+                                    onClick={() => navigate(`/submissions/${sub._id}`)}
+                                    className="bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 hover:scale-[1.02] transition-all group cursor-pointer flex flex-col"
                                 >
-                                    <div className="p-5 flex-1">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${statusStyle.bg} ${statusStyle.color}`}>
-                                                <StatusIcon className="w-3.5 h-3.5" />
-                                                {statusStyle.label}
-                                            </span>
-                                            {sub.status === 'graded' && (
-                                                <span className="text-sm font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                                                    {sub.grade} / {sub.assignment?.maxMarks}
-                                                </span>
-                                            )}
-                                        </div>
-                                        
-                                        <h3 className="font-semibold text-gray-900 line-clamp-2 mb-1 group-hover:text-blue-600 transition-colors">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${status.bg} ${status.color} ${status.border}`}>
+                                            <StatusIcon className="w-3.5 h-3.5" />
+                                            {status.label}
+                                        </span>
+                                        {sub.status === 'graded' && (
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-xl font-black text-slate-900">{sub.grade}</span>
+                                                <span className="text-[10px] font-bold text-slate-300">/ {sub.assignment?.maxMarks}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="flex-1 space-y-2">
+                                        <h3 className="text-lg font-black text-slate-900 line-clamp-2 group-hover:text-indigo-600 transition-colors leading-tight">
                                             {sub.assignment?.title || 'Unknown Assignment'}
                                         </h3>
                                         
-                                        <p className="text-sm text-gray-500 mb-4 line-clamp-1">
-                                            {sub.assignment?.course?.title || 'Unknown Course'}
-                                        </p>
-
-                                        <div className="text-xs text-gray-500 flex items-center gap-2 mt-auto">
-                                            <span>Submitted: {new Date(sub.submittedAt).toLocaleDateString()}</span>
-                                            {sub.files?.length > 0 && (
-                                                <span className="flex items-center gap-1 before:content-['•'] before:mr-2 before:text-gray-300">
-                                                    <MdOutlineUploadFile className="w-3.5 h-3.5" /> 
-                                                    {sub.files.length} {sub.files.length === 1 ? 'file' : 'files'}
-                                                </span>
-                                            )}
+                                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                            <MdOutlineSchool className="w-3.5 h-3.5" />
+                                            <span className="truncate max-w-[200px]">{sub.assignment?.course?.title || 'Unknown Course'}</span>
                                         </div>
                                     </div>
-                                    
-                                    <div className="border-t border-gray-100 p-3 bg-gray-50 rounded-b-xl flex justify-end">
-                                        <button 
-                                            onClick={() => navigate(`/submissions/${sub._id}`)}
-                                            className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-4 py-2 rounded-lg transition-colors w-full text-center"
-                                        >
-                                            View Details
-                                        </button>
+
+                                    <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Timestamp</p>
+                                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                                                <MdCalendarToday className="w-3.5 h-3.5 text-slate-300" />
+                                                {new Date(sub.submittedAt).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
+                                            <MdArrowForward className="w-5 h-5" />
+                                        </div>
                                     </div>
                                 </div>
                             );
-                        })}
-                    </div>
-                )}
+                        })
+                    )}
+                </div>
             </div>
         </div>
     );
