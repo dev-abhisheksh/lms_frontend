@@ -33,6 +33,7 @@ import TeacherStudents from "./pages/TeacherSubPages/TeacherStudents";
 import TeacherResources from "./pages/TeacherSubPages/TeacherResources";
 import TeacherNotes from "./pages/TeacherSubPages/TeacherNotes";
 import TeacherTests from "./pages/TeacherSubPages/TeacherTests";
+import TeacherAttendance from "./pages/TeacherSubPages/TeacherAttendance";
 
 
 import { Toaster } from "react-hot-toast";
@@ -87,6 +88,7 @@ const App = () => {
               <Route path="/teacher/resources" element={<TeacherResources />} />
               <Route path="/teacher/notes" element={<TeacherNotes />} />
               <Route path="/teacher/tests" element={<TeacherTests />} />
+              <Route path="/teacher/attendance" element={<TeacherAttendance />} />
             </Route>
           </Route>
 
