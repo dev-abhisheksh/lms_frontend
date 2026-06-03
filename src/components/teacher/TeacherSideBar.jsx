@@ -59,16 +59,10 @@ const TeacherSideBar = () => {
       path: "/teacher/tests",
     },
     {
-      id: "notes",
-      label: "Notes & Material",
-      icon: MdOutlineDescription,
-      path: "/teacher/notes",
-    },
-    {
-      id: "resources",
-      label: "Resources",
+      id: "materials",
+      label: "Material Lab",
       icon: MdOutlineFolderOpen,
-      path: "/teacher/resources",
+      path: "/teacher/materials",
     },
   ];
 

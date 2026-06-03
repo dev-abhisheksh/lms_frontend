@@ -58,16 +58,10 @@ const TeacherBottombar = () => {
       path: "/teacher/tests",
     },
     {
-      id: "notes",
-      label: "Notes",
-      icon: MdOutlineDescription,
-      path: "/teacher/notes",
-    },
-    {
-      id: "resources",
-      label: "Resources",
+      id: "materials",
+      label: "Materials",
       icon: MdOutlineFolderOpen,
-      path: "/teacher/resources",
+      path: "/teacher/materials",
     },
   ];
 

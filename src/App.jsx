@@ -30,8 +30,7 @@ import TeacherCourses from "./pages/TeacherSubPages/TeacherCourses";
 import TeacherAssignments from "./pages/TeacherSubPages/TeacherAssignments";
 import TeacherSubmissions from "./pages/TeacherSubPages/TeacherSubmissions";
 import TeacherStudents from "./pages/TeacherSubPages/TeacherStudents";
-import TeacherResources from "./pages/TeacherSubPages/TeacherResources";
-import TeacherNotes from "./pages/TeacherSubPages/TeacherNotes";
+import TeacherMaterials from "./pages/TeacherSubPages/TeacherMaterials";
 import TeacherTests from "./pages/TeacherSubPages/TeacherTests";
 import TeacherAttendance from "./pages/TeacherSubPages/TeacherAttendance";
 
@@ -85,8 +84,7 @@ const App = () => {
               <Route path="/teacher/assignments/:assignmentId/submissions" element={<TeacherSubmissions />} />
               <Route path="/teacher/submissions" element={<TeacherSubmissions />} />
               <Route path="/teacher/students" element={<TeacherStudents />} />
-              <Route path="/teacher/resources" element={<TeacherResources />} />
-              <Route path="/teacher/notes" element={<TeacherNotes />} />
+              <Route path="/teacher/materials" element={<TeacherMaterials />} />
               <Route path="/teacher/tests" element={<TeacherTests />} />
               <Route path="/teacher/attendance" element={<TeacherAttendance />} />
             </Route>

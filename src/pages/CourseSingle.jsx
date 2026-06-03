@@ -5,7 +5,23 @@ import { allModules } from '../API/module.api'
 import { getAssignmentsByCourse } from '../API/assignment.api'
 import { getTestsByCourse } from '../API/test.api'
 import { getMyAttendance } from '../API/attendance.api'
-import { MdAssignment, MdQuiz, MdMenuBook, MdDescription, MdChevronRight, MdAccessTime, MdGrade, MdCheckCircle, MdCancel, MdAccessAlarms } from 'react-icons/md'
+import { getNotesByCourse } from '../API/note.api'
+import { 
+    MdAssignment, 
+    MdQuiz, 
+    MdMenuBook, 
+    MdDescription, 
+    MdChevronRight, 
+    MdAccessTime, 
+    MdGrade, 
+    MdCheckCircle, 
+    MdCancel, 
+    MdAccessAlarms,
+    MdOutlineLibraryBooks,
+    MdOutlineAttachFile,
+    MdOutlinePlayCircleOutline,
+    MdOpenInNew
+} from 'react-icons/md'
 
 const CourseSingle = () => {
     const { courseID } = useParams()
@@ -15,6 +31,7 @@ const CourseSingle = () => {
     const [assignments, setAssignments] = useState([])
     const [tests, setTests] = useState([])
     const [attendance, setAttendance] = useState([])
+    const [materials, setMaterials] = useState([])
     const [activeTab, setActiveTab] = useState('description')
     const [loading, setLoading] = useState(true)
 
@@ -22,12 +39,13 @@ const CourseSingle = () => {
         const fetchCourseData = async () => {
             try {
                 setLoading(true)
-                const [courseRes, modulesRes, assignmentsRes, testsRes, attendanceRes] = await Promise.all([
+                const [courseRes, modulesRes, assignmentsRes, testsRes, attendanceRes, materialsRes] = await Promise.all([
                     getCourseById(courseID),
                     allModules(courseID).catch(() => ({ data: { modules: [] } })),
                     getAssignmentsByCourse(courseID).catch(() => ({ data: { assignments: [] } })),
                     getTestsByCourse(courseID).catch(() => ({ data: { tests: [] } })),
-                    getMyAttendance(courseID).catch(() => ({ attendance: [] }))
+                    getMyAttendance(courseID).catch(() => ({ attendance: [] })),
+                    getNotesByCourse(courseID).catch(() => ({ data: { notes: [] } }))
                 ]);
 
                 setCourse(courseRes.data.course);
@@ -47,6 +65,10 @@ const CourseSingle = () => {
                 if (attendanceRes && attendanceRes.attendance) {
                     setAttendance(attendanceRes.attendance);
                 }
+
+                if (materialsRes && materialsRes.data?.notes) {
+                    setMaterials(materialsRes.data.notes);
+                }
             } catch (error) {
                 console.error("Failed to fetch course data", error)
             } finally {
@@ -63,7 +85,7 @@ const CourseSingle = () => {
         year: 'numeric'
     }) : "";
 
-    const tabs = ["description", "modules", "assignments", "tests", "attendance"]
+    const tabs = ["description", "modules", "assignments", "tests", "attendance", "materials"]
 
     if (loading) {
         return (
@@ -295,6 +317,91 @@ const CourseSingle = () => {
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    )}
+
+                    {activeTab === "materials" && (
+                        <div className='space-y-6'>
+                            {materials.length === 0 ? (
+                                <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
+                                    <MdOutlineLibraryBooks className="w-16 h-16 text-gray-100 mx-auto mb-4" />
+                                    <p className="text-gray-400 font-medium italic">No learning materials shared yet.</p>
+                                </div>
+                            ) : (
+                                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                                    {materials.map((material) => (
+                                        <div 
+                                            key={material._id}
+                                            className='bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all group'
+                                        >
+                                            <div className='flex items-start gap-4'>
+                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                                                    material.type === 'link' ? 'bg-rose-50 text-rose-600' : 
+                                                    material.type === 'resource' ? 'bg-blue-50 text-blue-600' : 
+                                                    'bg-indigo-50 text-indigo-600'
+                                                }`}>
+                                                    {material.type === 'link' ? <MdOutlinePlayCircleOutline size={24} /> : 
+                                                     material.type === 'resource' ? <MdOutlineAttachFile size={24} /> : 
+                                                     <MdOutlineDescription size={24} />}
+                                                </div>
+                                                <div className='flex-1 min-w-0'>
+                                                    <div className='flex items-center gap-2 flex-wrap'>
+                                                        <h3 className='font-bold text-gray-900 group-hover:text-indigo-600 transition-colors truncate'>{material.title}</h3>
+                                                        <span className='text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-gray-50 text-gray-400 rounded-full border border-gray-100'>
+                                                            {material.type}
+                                                        </span>
+                                                    </div>
+                                                    <div className='flex items-center gap-3 mt-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
+                                                        {material.chapter && <span>{material.chapter}</span>}
+                                                        {material.chapter && material.lessonName && <span className='w-1 h-1 bg-gray-300 rounded-full'></span>}
+                                                        {material.lessonName && <span>{material.lessonName}</span>}
+                                                    </div>
+                                                    
+                                                    <p className='text-xs text-gray-600 font-medium mt-3 line-clamp-2 leading-relaxed'>
+                                                        {material.content}
+                                                    </p>
+
+                                                    <div className='mt-4 pt-4 border-t border-gray-50 flex items-center justify-between'>
+                                                        <div className='flex -space-x-2'>
+                                                            {material.attachments?.slice(0, 3).map((_, i) => (
+                                                                <div key={i} className='w-6 h-6 rounded-full bg-white border border-gray-100 flex items-center justify-center'>
+                                                                    <MdOutlineAttachFile size={10} className='text-gray-400' />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+
+                                                        {material.type === 'link' && material.youtubeUrl ? (
+                                                            <a 
+                                                                href={material.youtubeUrl} 
+                                                                target="_blank" 
+                                                                rel="noreferrer"
+                                                                className='flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-rose-600 hover:text-rose-700 transition-colors'
+                                                            >
+                                                                Watch Video <MdOpenInNew size={14} />
+                                                            </a>
+                                                        ) : material.attachments?.length > 0 ? (
+                                                            <div className='flex gap-2'>
+                                                                {material.attachments.map((file, idx) => (
+                                                                    <a 
+                                                                        key={idx}
+                                                                        href={file.secure_url} 
+                                                                        target="_blank" 
+                                                                        rel="noreferrer"
+                                                                        className='p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all'
+                                                                        title={file.original_filename}
+                                                                    >
+                                                                        <MdOutlineAttachFile size={16} />
+                                                                    </a>
+                                                                ))}
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 

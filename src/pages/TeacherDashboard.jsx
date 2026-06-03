@@ -199,17 +199,10 @@ const TeacherDashboard = () => {
               />
               <ActionCard
                 icon={MdFileDownload}
-                title="Upload Resources"
-                desc="Share course materials and files"
-                href="/teacher/resources"
+                title="Material Lab"
+                desc="Manage notes, files, and video links"
+                href="/teacher/materials"
                 color="bg-blue-100 text-blue-600"
-              />
-              <ActionCard
-                icon={MdNotes}
-                title="Create Notes"
-                desc="Write and manage course notes"
-                href="/teacher/notes"
-                color="bg-green-100 text-green-600"
               />
               <ActionCard
                 icon={MdCheckCircle}
