@@ -8,7 +8,6 @@ import {
     MdCheckCircle, 
     MdPending, 
     MdGrade, 
-    MdDownload, 
     MdRefresh, 
     MdError, 
     MdClose,
@@ -17,10 +16,23 @@ import {
     MdOutlineLibraryBooks,
     MdArrowForward,
     MdTimer,
-    MdOutlineInfo
+    MdOutlineInfo,
+    MdChevronRight
 } from 'react-icons/md';
 import { connectAssignmentSocket, disconnectAssignmentSocket } from '../socket/assignment.socket';
 import { useNavigate } from 'react-router-dom';
+
+const StatCard = ({ icon: Icon, label, value, colorClass }) => (
+    <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${colorClass}`}>
+            <Icon className="w-5 h-5" />
+        </div>
+        <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1">{label}</p>
+            <p className="text-lg font-black text-slate-900 leading-tight">{value}</p>
+        </div>
+    </div>
+);
 
 const Assignments = () => {
     const [assignments, setAssignments] = useState([]);
@@ -29,7 +41,6 @@ const Assignments = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState(null);
     const [filter, setFilter] = useState('all'); // all, pending, submitted, graded
-    const [sortBy, setSortBy] = useState('dueDate'); // dueDate, title
     const [searchTerm, setSearchTerm] = useState("");
     const socketConnected = useRef(false);
     
@@ -92,7 +103,7 @@ const Assignments = () => {
             }
         } catch (error) {
             console.error("Error fetching assignments:", error);
-            setError(error.response?.data?.message || "Failed to load assignments. Please try again.");
+            setError(error.response?.data?.message || "Failed to load assignments.");
         } finally {
             if (isRefresh) setIsRefreshing(false);
             else setInitialLoading(false);
@@ -144,20 +155,14 @@ const Assignments = () => {
         };
     }, [initialLoading, enrolledCourseIds]);
 
-    // ─── Filter & Sort Logic ───────────────────────────────────────────
     const filteredAssignments = assignments.filter(a => {
         const matchesFilter = filter === 'all' || a.submissionStatus === filter;
         const matchesSearch = a.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                              (a.course?.title || '').toLowerCase().includes(searchTerm.toLowerCase());
         return matchesFilter && matchesSearch;
-    }).sort((a, b) => {
-        if (sortBy === 'dueDate') return new Date(a.dueDate) - new Date(b.dueDate);
-        if (sortBy === 'title') return a.title.localeCompare(b.title);
-        return 0;
-    });
+    }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
-    // ─── UI Helpers ────────────────────────────────────────────────────
-    const getStatusBadge = (assignment) => {
+    const getStatusStyle = (assignment) => {
         switch (assignment.submissionStatus) {
             case 'submitted':
                 return { label: 'Submitted', color: 'bg-indigo-50 text-indigo-600 border-indigo-100', icon: MdCheckCircle };
@@ -166,7 +171,7 @@ const Assignments = () => {
             case 'graded':
                 return { label: 'Graded', color: 'bg-green-50 text-green-600 border-green-100', icon: MdGrade };
             default:
-                return { label: 'Pending', color: 'bg-slate-50 text-slate-500 border-slate-100', icon: MdPending };
+                return { label: 'Pending', color: 'bg-slate-50 text-slate-400 border-slate-100', icon: MdPending };
         }
     };
 
@@ -181,191 +186,163 @@ const Assignments = () => {
         });
     };
 
+    if (initialLoading) {
+        return (
+            <div className="min-h-screen bg-[#F9FAFB] p-3 sm:p-6 space-y-6 animate-pulse">
+                <div className="flex justify-between items-center h-12">
+                    <div className="h-8 bg-slate-100 rounded-lg w-48"></div>
+                    <div className="h-10 bg-slate-100 rounded-xl w-32"></div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="h-16 bg-white rounded-2xl border border-slate-100"></div>
+                    ))}
+                </div>
+                <div className="space-y-3 pt-4">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="h-20 bg-white rounded-2xl border border-slate-100"></div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className='min-h-screen bg-[#F9FAFB] p-4 sm:p-6 lg:p-8'>
-            <div className='max-w-7xl mx-auto space-y-8'>
+        <div className="min-h-screen bg-[#F9FAFB] p-3 sm:p-6 antialiased font-sans text-slate-900">
+            <div className="max-w-7xl mx-auto space-y-6">
                 
                 {/* ── Page Header ── */}
-                <div className='flex flex-col md:flex-row md:items-end justify-between gap-6'>
+                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className='text-3xl font-extrabold tracking-tight text-slate-900'>Assignments</h1>
-                        <p className='text-sm font-medium text-slate-500 mt-1'>
-                            Track your coursework, deadlines, and submissions
-                        </p>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">Task Center</h1>
+                        <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">Manage your coursework and upcoming deadlines</p>
                     </div>
-
-                    <div className='flex gap-3'>
+                    <div className="flex items-center gap-3 shrink-0">
                         <button
                             onClick={() => fetchAssignments(true)}
-                            className='w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:text-indigo-600 transition-all shadow-sm'
+                            className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm"
+                            title="Refresh List"
                         >
-                            <MdRefresh className={`w-6 h-6 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            <MdRefresh className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
                         </button>
-                        <div className='hidden sm:flex items-center gap-3 px-6 bg-white border border-slate-200 rounded-2xl shadow-sm'>
-                            <div className='w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600'>
-                                <MdAssignment className='w-5 h-5' />
-                            </div>
-                            <div>
-                                <p className='text-[10px] font-black uppercase tracking-widest text-slate-400'>Total Tasks</p>
-                                <p className='text-sm font-bold text-slate-900'>{assignments.length}</p>
-                            </div>
-                        </div>
+                        <StatCard 
+                            icon={MdAssignment} 
+                            label="Active Tasks" 
+                            value={assignments.length} 
+                            colorClass="bg-indigo-50 text-indigo-600" 
+                        />
                     </div>
-                </div>
+                </header>
 
                 {/* ── Filters & Search ── */}
-                <div className='grid grid-cols-1 lg:grid-cols-12 gap-6 items-center'>
-                    <div className='lg:col-span-8 bg-white p-4 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4'>
-                        <MdSearch className='w-5 h-5 text-slate-300 ml-2' />
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    <div className="lg:col-span-8 bg-white p-2 px-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3">
+                        <MdSearch className="w-5 h-5 text-slate-300" />
                         <input 
                             type="text" 
-                            placeholder="Search by assignment title or course..." 
+                            placeholder="Search tasks..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="flex-1 bg-transparent text-sm font-bold text-slate-900 focus:outline-none placeholder:text-slate-300 placeholder:font-medium"
+                            className="flex-1 bg-transparent text-xs font-bold text-slate-900 focus:outline-none placeholder:text-slate-300"
                         />
                     </div>
 
-                    <div className='lg:col-span-4 bg-white p-4 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4'>
-                        <MdFilterList className='w-5 h-5 text-slate-300 ml-2' />
+                    <div className="lg:col-span-4 bg-white p-2 px-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3">
+                        <MdFilterList className="w-5 h-5 text-slate-300" />
                         <select
                             value={filter}
                             onChange={(e) => setFilter(e.target.value)}
-                            className="flex-1 bg-transparent text-sm font-bold text-slate-900 focus:outline-none cursor-pointer"
+                            className="flex-1 bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer appearance-none"
                         >
                             <option value="all">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="submitted">Submitted</option>
-                            <option value="graded">Graded</option>
+                            <option value="pending">Pending Only</option>
+                            <option value="submitted">Turned In</option>
+                            <option value="graded">Evaluated</option>
                         </select>
                     </div>
                 </div>
 
-                {/* ── Error State ── */}
-                {error && (
-                    <div className='bg-rose-50 border border-rose-100 rounded-3xl p-6 flex items-start gap-4 animate-in fade-in zoom-in duration-150'>
-                        <div className='w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-rose-500 shadow-sm shrink-0'>
-                            <MdError className='w-6 h-6' />
-                        </div>
-                        <div className='flex-1'>
-                            <h3 className='text-rose-900 font-bold'>Unable to load assignments</h3>
-                            <p className='text-rose-700 text-sm font-medium mt-1'>{error}</p>
-                            <button onClick={() => fetchAssignments(true)} className='mt-3 text-rose-600 font-black text-[10px] uppercase tracking-widest hover:underline'>
-                                Try Again →
-                            </button>
-                        </div>
-                        <button onClick={() => setError(null)} className='text-rose-400 hover:text-rose-600'>
-                            <MdClose className='w-5 h-5' />
-                        </button>
-                    </div>
-                )}
-
                 {/* ── Main Content ── */}
-                <div className='grid grid-cols-1 gap-6'>
-                    {initialLoading ? (
-                        [...Array(4)].map((_, i) => (
-                            <div key={i} className='bg-white rounded-[32px] h-32 border border-slate-100 animate-pulse' />
-                        ))
-                    ) : filteredAssignments.length === 0 ? (
-                        <div className='bg-white rounded-[40px] border border-slate-100 p-20 text-center shadow-sm flex flex-col items-center justify-center'>
-                            <div className="w-24 h-24 bg-slate-50 rounded-[40px] flex items-center justify-center text-slate-200 mb-8">
-                                <MdOutlineLibraryBooks className="w-12 h-12" />
+                <div className="space-y-3">
+                    {filteredAssignments.length === 0 ? (
+                        <div className="bg-white rounded-2xl border border-slate-100 p-16 text-center shadow-sm flex flex-col items-center justify-center">
+                            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 mb-6">
+                                <MdOutlineLibraryBooks className="w-8 h-8" />
                             </div>
-                            <h3 className="text-2xl font-black text-slate-900">No Assignments Found</h3>
-                            <p className="text-sm font-medium text-slate-500 mt-3 max-w-sm mx-auto leading-relaxed">
-                                You don't have any assignments matching the current filters.
-                            </p>
+                            <h3 className="text-lg font-black text-slate-900">No Assignments Located</h3>
+                            <p className="text-xs font-medium text-slate-500 mt-2 max-w-xs mx-auto">Check back later or adjust your filters for more results.</p>
                         </div>
                     ) : (
                         filteredAssignments.map((assignment) => {
-                            const badge = getStatusBadge(assignment);
+                            const style = getStatusStyle(assignment);
                             const overdue = isOverdue(assignment.dueDate) && assignment.submissionStatus === 'pending';
-                            const courseTitle = assignment.course?.title || assignment.courseId?.title || 'Course';
+                            const courseTitle = assignment.course?.title || 'Course';
 
                             return (
                                 <div
                                     key={assignment._id}
-                                    className='bg-white rounded-[32px] border border-slate-100 p-6 sm:p-8 hover:shadow-xl hover:shadow-indigo-500/5 transition-all group flex flex-col md:flex-row md:items-center gap-6 relative overflow-hidden'
+                                    onClick={() => {
+                                        if (['submitted', 'graded', 'late'].includes(assignment.submissionStatus)) {
+                                            navigate(`/submissions/${assignment.submissionId}`);
+                                        } else {
+                                            navigate(`/assignments/${assignment._id}`);
+                                        }
+                                    }}
+                                    className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-5 hover:border-indigo-100 hover:shadow-md transition-all group flex items-center gap-4 cursor-pointer relative overflow-hidden"
                                 >
-                                    {/* Status Indicator Strip */}
-                                    <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${overdue ? 'bg-rose-500' : 'bg-transparent'}`}></div>
+                                    {/* Left: Icon Badge */}
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all ${overdue ? 'bg-rose-50 text-rose-500' : 'bg-slate-50 text-slate-400 group-hover:bg-indigo-600 group-hover:text-white'}`}>
+                                        <MdAssignment className="w-6 h-6" />
+                                    </div>
 
-                                    {/* Left: Icon & Title */}
-                                    <div className='flex items-center gap-6 flex-1 min-w-0'>
-                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-all ${overdue ? 'bg-rose-50 text-rose-600' : 'bg-slate-50 text-slate-600'}`}>
-                                            <MdAssignment className='w-7 h-7' />
+                                    {/* Center: Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <h3 className="text-sm font-bold text-slate-900 truncate">{assignment.title}</h3>
+                                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border flex items-center gap-1 ${style.color} ${style.border} ${style.bg}`}>
+                                                <style.icon className="w-2.5 h-2.5" />
+                                                {style.label}
+                                            </span>
                                         </div>
-                                        <div className='min-w-0'>
-                                            <div className='flex items-center gap-3 flex-wrap mb-1'>
-                                                <h3 className='text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate max-w-md'>
-                                                    {assignment.title}
-                                                </h3>
-                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 ${badge.color}`}>
-                                                    <badge.icon className='w-3 h-3' />
-                                                    {badge.label}
-                                                </span>
-                                            </div>
-                                            <p className='text-xs font-bold text-slate-400 uppercase tracking-widest'>
+                                        <div className="flex items-center gap-3">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[150px]">
                                                 {courseTitle}
                                             </p>
+                                            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase">
+                                                <MdCalendarToday className={`w-3 h-3 ${overdue ? 'text-rose-500' : 'text-slate-300'}`} />
+                                                <span className={overdue ? 'text-rose-600' : ''}>{formatDate(assignment.dueDate)}</span>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Center: Metadata */}
-                                    <div className='flex items-center gap-8 sm:gap-12 flex-wrap'>
-                                        <div className='space-y-1'>
-                                            <p className='text-[10px] font-black uppercase tracking-widest text-slate-400'>Due Date</p>
-                                            <div className='flex items-center gap-2'>
-                                                <MdCalendarToday className={`w-4 h-4 ${overdue ? 'text-rose-500' : 'text-slate-400'}`} />
-                                                <p className={`text-sm font-bold ${overdue ? 'text-rose-600' : 'text-slate-900'}`}>
-                                                    {formatDate(assignment.dueDate)}
-                                                </p>
-                                            </div>
+                                    {/* Right: Metrics & Action */}
+                                    <div className="flex items-center gap-6 shrink-0">
+                                        <div className="hidden sm:block text-right">
+                                            <p className="text-[8px] font-black uppercase text-slate-300 tracking-widest">Weightage</p>
+                                            <p className="text-xs font-black text-slate-900">{assignment.maxMarks || 100} pts</p>
                                         </div>
-
-                                        <div className='space-y-1'>
-                                            <p className='text-[10px] font-black uppercase tracking-widest text-slate-400'>Points</p>
-                                            <div className='flex items-center gap-2'>
-                                                <MdGrade className='w-4 h-4 text-slate-400' />
-                                                <p className='text-sm font-bold text-slate-900'>{assignment.maxMarks || 100}</p>
-                                            </div>
-                                        </div>
-
                                         {assignment.submissionStatus === 'graded' && (
-                                            <div className='space-y-1'>
-                                                <p className='text-[10px] font-black uppercase tracking-widest text-slate-400'>Result</p>
-                                                <p className='text-sm font-black text-green-600'>{assignment.grade} / {assignment.maxMarks}</p>
+                                            <div className="text-right">
+                                                <p className="text-[8px] font-black uppercase text-green-600 tracking-widest">Score</p>
+                                                <p className="text-sm font-black text-slate-900 leading-none mt-0.5">{assignment.grade} <span className="text-[10px] text-slate-300">/ {assignment.maxMarks}</span></p>
                                             </div>
                                         )}
+                                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                            <MdChevronRight className="w-5 h-5" />
+                                        </div>
                                     </div>
-
-                                    {/* Right: Action */}
-                                    <button 
-                                        onClick={() => {
-                                            if (assignment.submissionStatus === 'submitted' || assignment.submissionStatus === 'graded' || assignment.submissionStatus === 'late') {
-                                                navigate(`/submissions/${assignment.submissionId}`);
-                                            } else {
-                                                navigate(`/assignments/${assignment._id}`);
-                                            }
-                                        }}
-                                        className='px-8 py-4 bg-indigo-600 text-white rounded-[24px] font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 hover:scale-[1.05] active:scale-95 transition-all shrink-0'
-                                    >
-                                        {assignment.submissionStatus === 'pending' ? 'Go to Task' : 'View Work'}
-                                    </button>
                                 </div>
                             );
                         })
                     )}
                 </div>
 
-                {/* ── Help Tip ── */}
+                {/* ── Real-time Tip ── */}
                 {!initialLoading && filteredAssignments.length > 0 && (
-                    <div className='bg-indigo-50/50 rounded-3xl p-6 border border-indigo-100/50 flex items-center gap-4 max-w-3xl mx-auto'>
-                         <div className='w-10 h-10 rounded-xl bg-white flex items-center justify-center text-indigo-600 shadow-sm shrink-0'>
-                            <MdOutlineInfo className='w-5 h-5' />
-                         </div>
-                         <p className='text-xs font-medium text-indigo-700/70 leading-relaxed'>
-                            Assignments are updated in real-time. If a new task is published by your teacher, it will appear here instantly without needing to refresh.
+                    <div className="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100 flex items-center gap-3 max-w-2xl mx-auto">
+                         <MdOutlineInfo className="w-5 h-5 text-indigo-400 shrink-0" />
+                         <p className="text-[10px] font-bold text-indigo-700/70 leading-relaxed uppercase tracking-widest">
+                            Real-time synchronization active. New tasks will appear instantly.
                          </p>
                     </div>
                 )}
