@@ -29,13 +29,13 @@ import {
 // ── Components ───────────────────────────────────────────────────────────────
 
 const StatCard = ({ icon: Icon, label, value, colorClass }) => (
-  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-2">
-    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorClass}`}>
-      <Icon className="w-6 h-6" />
+  <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
+    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${colorClass}`}>
+      <Icon className="w-5 h-5" />
     </div>
-    <div>
-      <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 leading-tight">{value ?? "—"}</p>
+    <div className="min-w-0">
+      <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider leading-none mb-1">{label}</p>
+      <p className="text-lg font-black text-gray-900 leading-tight truncate">{value ?? "—"}</p>
     </div>
   </div>
 );

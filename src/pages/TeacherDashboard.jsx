@@ -19,16 +19,16 @@ import { getSubmissionStatusForAssignment } from "../API/submission.api";
 const StatCard = ({ icon: Icon, label, value, color, onClick }) => (
   <button
     onClick={onClick}
-    className={`bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-left hover:shadow-md transition-all group w-full`}
+    className="bg-white rounded-[20px] p-3 border border-gray-100 shadow-sm flex items-center gap-3 hover:bg-gray-50 transition-all group w-full text-left"
   >
-    <div className="flex items-start justify-between mb-3">
-      <div className={`p-2 rounded-lg ${color}`}>
-        <Icon className="w-4 h-4" />
-      </div>
-      <MdArrowForward className="w-3.5 h-3.5 text-gray-300 group-hover:text-gray-500 transition mt-1" />
+    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
+      <Icon className="w-5 h-5" />
     </div>
-    <p className="text-2xl font-bold text-gray-900">{value ?? "—"}</p>
-    <p className="text-sm font-medium text-gray-700 mt-0.5">{label}</p>
+    <div className="min-w-0 flex-1">
+      <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider leading-none mb-1">{label}</p>
+      <p className="text-lg font-black text-gray-900 leading-tight truncate">{value ?? "—"}</p>
+    </div>
+    <MdArrowForward className="w-4 h-4 text-gray-300 group-hover:text-gray-900 transition-colors shrink-0" />
   </button>
 );
 

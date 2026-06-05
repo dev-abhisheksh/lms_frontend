@@ -102,45 +102,45 @@ const TakeTest = () => {
         return `${h > 0 ? h + ':' : ''}${m < 10 ? '0' + m : m}:${s < 10 ? '0' + s : s}`;
     };
 
-    if (loading) return <div className="p-10 text-center font-bold">Loading assessment...</div>;
+    if (loading) return <div className="p-10 text-center font-black animate-pulse text-slate-400">Loading assessment...</div>;
 
     if (!testStarted) {
         return (
-            <div className="min-h-full flex items-center justify-center p-6">
-                <div className="bg-white rounded-[40px] p-10 md:p-16 max-w-2xl w-full shadow-2xl shadow-indigo-500/10 border border-gray-100 text-center space-y-8">
-                    <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 mx-auto">
-                        <MdAccessTime className="w-10 h-10" />
+            <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4 sm:p-6 antialiased font-sans">
+                <div className="bg-white rounded-2xl p-6 sm:p-12 max-w-xl w-full shadow-sm border border-slate-100 text-center space-y-6">
+                    <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mx-auto">
+                        <MdAccessTime className="w-8 h-8" />
                     </div>
                     
-                    <div className="space-y-2">
-                        <h1 className="text-3xl font-black text-gray-900 tracking-tight">{test.title}</h1>
-                        <p className="text-gray-500 font-medium">{test.description || "No description provided."}</p>
+                    <div className="space-y-1">
+                        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">{test.title}</h1>
+                        <p className="text-xs sm:text-sm font-medium text-slate-500">{test.description || "Assessment Instructions"}</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-gray-50 p-4 rounded-2xl">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Time Limit</p>
-                            <p className="text-xl font-black text-gray-900">{test.duration} Minutes</p>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Duration</p>
+                            <p className="text-lg font-black text-slate-900">{test.duration} Min</p>
                         </div>
-                        <div className="bg-gray-50 p-4 rounded-2xl">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Questions</p>
-                            <p className="text-xl font-black text-gray-900">{test.questions.length} Items</p>
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Items</p>
+                            <p className="text-lg font-black text-slate-900">{test.questions.length} Qs</p>
                         </div>
                     </div>
 
-                    <div className="bg-amber-50 rounded-2xl p-4 flex gap-3 text-left">
-                        <MdWarning className="text-amber-600 w-5 h-5 shrink-0" />
-                        <p className="text-xs text-amber-800 font-bold leading-relaxed">
-                            Once you start, the timer cannot be paused. Closing the browser or navigating away will not stop the timer.
+                    <div className="bg-amber-50 rounded-xl p-3 flex gap-2 text-left border border-amber-100">
+                        <MdWarning className="text-amber-600 w-4 h-4 shrink-0 mt-0.5" />
+                        <p className="text-[10px] text-amber-900 font-bold leading-relaxed">
+                            Once started, the timer runs continuously. Do not close or refresh this page.
                         </p>
                     </div>
 
                     <button 
                         onClick={startTimer}
-                        className="w-full py-5 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all font-black text-lg shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-3"
+                        className="w-full py-4 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 flex items-center justify-center gap-2"
                     >
-                        Start Assessment
-                        <MdArrowForward className="w-6 h-6" />
+                        Begin Assessment
+                        <MdArrowForward className="w-4 h-4" />
                     </button>
                 </div>
             </div>
@@ -151,117 +151,117 @@ const TakeTest = () => {
     const selectedAns = answers.find(a => a.questionId === question._id);
 
     return (
-        <div className="min-h-full bg-white flex flex-col">
-            {/* Header / Progress */}
-            <header className="bg-white border-b border-gray-100 p-4 md:px-10 flex items-center justify-between sticky top-0 z-20">
+        <div className="min-h-screen bg-[#F9FAFB] flex flex-col antialiased font-sans text-slate-900">
+            {/* Header */}
+            <header className="bg-white border-b border-slate-100 px-4 py-3 sm:px-6 flex items-center justify-between sticky top-0 z-20 shadow-sm">
                 <div className="flex items-center gap-4">
-                    <div className="hidden md:flex flex-col">
-                        <h2 className="text-sm font-black text-gray-900 line-clamp-1">{test.title}</h2>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <div className="hidden sm:flex flex-col">
+                        <h2 className="text-sm font-black text-slate-900 line-clamp-1">{test.title}</h2>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
                             Question {currentQuestion + 1} of {test.questions.length}
                         </p>
                     </div>
                 </div>
 
-                <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl border ${timeLeft < 300 ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-indigo-50 border-indigo-100 text-indigo-600'}`}>
-                    <MdOutlineTimer className={`w-5 h-5 ${timeLeft < 300 ? 'animate-pulse' : ''}`} />
-                    <span className="text-lg font-black font-mono">{formatTime(timeLeft)}</span>
+                <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${timeLeft < 300 ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-indigo-50 border-indigo-100 text-indigo-600'}`}>
+                    <MdOutlineTimer className={`w-4 h-4 ${timeLeft < 300 ? 'animate-pulse' : ''}`} />
+                    <span className="text-base font-black font-mono leading-none">{formatTime(timeLeft)}</span>
                 </div>
 
                 <button 
-                    onClick={() => { if(window.confirm("Submit test?")) handleSubmit(); }}
+                    onClick={() => { if(window.confirm("Submit your assessment?")) handleSubmit(); }}
                     disabled={isSubmitting}
-                    className="px-6 py-3 bg-gray-900 text-white rounded-xl hover:bg-emerald-600 transition-all font-black text-xs uppercase tracking-widest"
+                    className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-emerald-600 transition-all font-black text-[10px] uppercase tracking-widest"
                 >
                     {isSubmitting ? "Submitting..." : "Finish"}
                 </button>
             </header>
 
             {/* Question Area */}
-            <main className="flex-1 flex flex-col md:flex-row max-w-7xl mx-auto w-full p-6 md:p-10 gap-10">
+            <main className="flex-1 p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
-                {/* Left: Question Content */}
-                <div className="flex-1 space-y-10">
-                    <div className="space-y-6">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-xs font-black uppercase tracking-widest">
+                {/* Left: Content */}
+                <div className="lg:col-span-8 space-y-6">
+                    <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-sm space-y-6">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest">
                             {question.type} • {question.marks} Points
                         </div>
-                        <h3 className="text-2xl md:text-3xl font-bold text-gray-900 leading-snug">
+                        <h3 className="text-lg sm:text-2xl font-black text-slate-900 leading-snug">
                             {question.questionText}
                         </h3>
-                    </div>
 
-                    <div className="grid grid-cols-1 gap-4">
-                        {(question.type === "mcq" || (question.type === "obt" && question.options?.length > 0)) ? (
-                            question.options.map((opt, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => handleOptionSelect(idx)}
-                                    className={`group flex items-center gap-6 p-6 rounded-[32px] border-2 text-left transition-all ${
-                                        selectedAns?.selectedOption === idx 
-                                        ? 'bg-indigo-50 border-indigo-600 shadow-xl shadow-indigo-500/10' 
-                                        : 'bg-white border-gray-100 hover:border-indigo-200 hover:bg-gray-50'
-                                    }`}
-                                >
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all ${
-                                        selectedAns?.selectedOption === idx 
-                                        ? 'bg-indigo-600 text-white shadow-lg' 
-                                        : 'bg-gray-50 text-gray-400 group-hover:bg-indigo-100 group-hover:text-indigo-400'
-                                    }`}>
-                                        {String.fromCharCode(65 + idx)}
-                                    </div>
-                                    <span className={`text-lg font-bold transition-colors ${
-                                        selectedAns?.selectedOption === idx ? 'text-indigo-900' : 'text-gray-700'
-                                    }`}>
-                                        {opt.text}
-                                    </span>
-                                    {selectedAns?.selectedOption === idx && (
-                                        <MdCheckCircle className="ml-auto w-8 h-8 text-indigo-600" />
+                        <div className="grid grid-cols-1 gap-3 pt-4">
+                            {(question.type === "mcq" || (question.type === "obt" && question.options?.length > 0)) ? (
+                                question.options.map((opt, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handleOptionSelect(idx)}
+                                        className={`group flex items-center gap-4 p-4 rounded-xl border transition-all text-left ${
+                                            selectedAns?.selectedOption === idx 
+                                            ? 'bg-indigo-50 border-indigo-600 shadow-sm' 
+                                            : 'bg-white border-slate-100 hover:border-indigo-200 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs transition-all ${
+                                            selectedAns?.selectedOption === idx 
+                                            ? 'bg-indigo-600 text-white shadow-sm' 
+                                            : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-400'
+                                        }`}>
+                                            {String.fromCharCode(65 + idx)}
+                                        </div>
+                                        <span className={`text-sm sm:text-base font-bold transition-colors ${
+                                            selectedAns?.selectedOption === idx ? 'text-indigo-900' : 'text-slate-700'
+                                        }`}>
+                                            {opt.text}
+                                        </span>
+                                        {selectedAns?.selectedOption === idx && (
+                                            <MdCheckCircle className="ml-auto w-5 h-5 text-indigo-600" />
+                                        )}
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Your Answer</label>
+                                    {question.type === "essay" ? (
+                                        <textarea
+                                            value={selectedAns?.textAnswer || ""}
+                                            onChange={(e) => handleTextAnswer(e.target.value)}
+                                            rows="5"
+                                            placeholder="Type your response here..."
+                                            className="w-full p-4 rounded-xl border border-slate-100 bg-slate-50 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 text-sm font-medium transition-all"
+                                        />
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            value={selectedAns?.textAnswer || ""}
+                                            onChange={(e) => handleTextAnswer(e.target.value)}
+                                            placeholder="Type your answer here..."
+                                            className="w-full p-4 rounded-xl border border-slate-100 bg-slate-50 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 text-sm font-bold transition-all"
+                                        />
                                     )}
-                                </button>
-                            ))
-                        ) : (
-                            <div className="space-y-4">
-                                <label className="text-sm font-bold text-gray-400 uppercase tracking-widest">Your Answer</label>
-                                {question.type === "essay" ? (
-                                    <textarea
-                                        value={selectedAns?.textAnswer || ""}
-                                        onChange={(e) => handleTextAnswer(e.target.value)}
-                                        rows="6"
-                                        placeholder="Type your essay response here..."
-                                        className="w-full p-6 rounded-[32px] border-2 border-gray-100 focus:border-indigo-600 focus:ring-0 text-lg transition-all"
-                                    />
-                                ) : (
-                                    <input
-                                        type="text"
-                                        value={selectedAns?.textAnswer || ""}
-                                        onChange={(e) => handleTextAnswer(e.target.value)}
-                                        placeholder="Type your answer here..."
-                                        className="w-full p-6 rounded-[32px] border-2 border-gray-100 focus:border-indigo-600 focus:ring-0 text-lg transition-all"
-                                    />
-                                )}
-                            </div>
-                        )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                {/* Right: Navigation Grid */}
-                <div className="w-full md:w-80 shrink-0">
-                    <div className="bg-gray-50 rounded-[40px] p-8 border border-gray-100 sticky top-32">
-                        <h4 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-6">Question Map</h4>
-                        <div className="grid grid-cols-5 gap-3">
+                {/* Right: Map */}
+                <aside className="lg:col-span-4 space-y-6">
+                    <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm sticky top-24">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Question Map</h4>
+                        <div className="grid grid-cols-5 gap-2">
                             {test.questions.map((_, idx) => {
                                 const isAnswered = answers.find(a => a.questionId === test.questions[idx]._id);
                                 return (
                                     <button
                                         key={idx}
                                         onClick={() => setCurrentQuestion(idx)}
-                                        className={`h-10 rounded-xl font-black text-xs transition-all ${
+                                        className={`h-9 rounded-lg font-black text-[10px] transition-all border ${
                                             currentQuestion === idx 
-                                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' 
+                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' 
                                             : isAnswered 
-                                            ? 'bg-emerald-100 text-emerald-600 border border-emerald-200'
-                                            : 'bg-white text-gray-400 border border-gray-100 hover:border-indigo-200'
+                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                            : 'bg-white text-slate-400 border-slate-100 hover:border-indigo-200'
                                         }`}
                                     >
                                         {idx + 1}
@@ -270,35 +270,35 @@ const TakeTest = () => {
                             })}
                         </div>
 
-                        <div className="mt-10 space-y-4">
-                            <div className="flex items-center gap-3 text-xs font-bold text-gray-500">
-                                <div className="w-3 h-3 bg-emerald-400 rounded-full"></div>
+                        <div className="mt-6 flex flex-wrap gap-4 pt-4 border-t border-slate-50">
+                            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                                <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
                                 Answered
                             </div>
-                            <div className="flex items-center gap-3 text-xs font-bold text-gray-500">
-                                <div className="w-3 h-3 bg-white border border-gray-200 rounded-full"></div>
+                            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                                <div className="w-2 h-2 bg-white border border-slate-200 rounded-full"></div>
                                 Remaining
                             </div>
                         </div>
                     </div>
-                </div>
+                </aside>
             </main>
 
             {/* Footer Navigation */}
-            <footer className="bg-white border-t border-gray-100 p-6 md:px-10 flex items-center justify-between">
+            <footer className="bg-white border-t border-slate-100 p-4 sm:px-10 flex items-center justify-between sticky bottom-0 z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]">
                 <button 
                     onClick={() => setCurrentQuestion(prev => Math.max(0, prev - 1))}
                     disabled={currentQuestion === 0}
-                    className="flex items-center gap-2 px-6 py-3 text-sm font-black text-gray-500 hover:text-gray-900 disabled:opacity-0 transition-all"
+                    className="flex items-center gap-1 px-4 py-2 text-[10px] font-black text-slate-500 hover:text-slate-900 disabled:opacity-0 transition-all uppercase tracking-widest"
                 >
-                    <MdArrowBack className="w-5 h-5" />
+                    <MdArrowBack className="w-4 h-4" />
                     Previous
                 </button>
 
-                <div className="hidden md:flex gap-2">
+                <div className="hidden sm:flex gap-1.5">
                     {test.questions.map((_, idx) => (
-                        <div key={idx} className={`h-1.5 rounded-full transition-all duration-300 ${
-                            currentQuestion === idx ? 'w-8 bg-indigo-600' : 'w-2 bg-gray-200'
+                        <div key={idx} className={`h-1 rounded-full transition-all duration-300 ${
+                            currentQuestion === idx ? 'w-6 bg-indigo-600' : 'w-1.5 bg-slate-100'
                         }`}></div>
                     ))}
                 </div>
@@ -306,15 +306,15 @@ const TakeTest = () => {
                 <button 
                     onClick={() => {
                         if (currentQuestion === test.questions.length - 1) {
-                            if(window.confirm("Finish and submit?")) handleSubmit();
+                            if(window.confirm("Submit your assessment?")) handleSubmit();
                         } else {
                             setCurrentQuestion(prev => Math.min(test.questions.length - 1, prev + 1));
                         }
                     }}
-                    className="flex items-center gap-2 px-8 py-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all font-black text-sm uppercase tracking-widest shadow-lg shadow-indigo-500/20"
+                    className="flex items-center gap-1 px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-100"
                 >
-                    {currentQuestion === test.questions.length - 1 ? "Finish" : "Next"}
-                    <MdArrowForward className="w-5 h-5" />
+                    {currentQuestion === test.questions.length - 1 ? "Finish" : "Next Question"}
+                    <MdArrowForward className="w-4 h-4" />
                 </button>
             </footer>
         </div>
