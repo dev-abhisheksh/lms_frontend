@@ -399,16 +399,28 @@ const TeacherTests = () => {
                       </Badge>
                     </div>
                   </div>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      loadSubmissions(test._id);
-                    }}
-                    className={`p-2 rounded-lg transition-colors ${viewingSubmissionsFor === test._id ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-400 hover:text-indigo-600'}`}
-                    title="View Submissions"
-                  >
-                    <MdPeople className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggle(test._id);
+                      }}
+                      className={`p-2 rounded-lg transition-colors ${test.isPublished ? 'bg-orange-50 text-orange-600 hover:bg-orange-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
+                      title={test.isPublished ? "Unpublish Test" : "Publish Test"}
+                    >
+                      {test.isPublished ? <MdOutlineUnpublished className="w-4 h-4" /> : <MdOutlinePublish className="w-4 h-4" />}
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        loadSubmissions(test._id);
+                      }}
+                      className={`p-2 rounded-lg transition-colors ${viewingSubmissionsFor === test._id ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-400 hover:text-indigo-600'}`}
+                      title="View Submissions"
+                    >
+                      <MdPeople className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               );
             })
