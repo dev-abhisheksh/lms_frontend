@@ -2,28 +2,30 @@ import React, { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
-  LuPlus,
-  LuChevronLeft,
-  LuLayoutGrid,
-  LuCheckCircle,
-  LuHelpCircle,
-  LuX,
-  LuSend,
-  LuEye,
-  LuTrash2,
-  LuEdit3,
-  LuClock,
-  LuBookOpen,
-  LuFileQuestion,
-  LuGraduationCap,
-  LuUsers,
-  LuCircleAlert,
-  LuCheck,
-  LuChevronRight,
-  LuSearch,
-  LuMoreVertical,
-  LuTrophy
-} from "react-icons/lu";
+  MdAdd,
+  MdArrowBack,
+  MdGridView,
+  MdCheckCircle,
+  MdHelpOutline,
+  MdClose,
+  MdSend,
+  MdVisibility,
+  MdDelete,
+  MdEdit,
+  MdSchedule,
+  MdBook,
+  MdQuiz,
+  MdSchool,
+  MdPeople,
+  MdErrorOutline,
+  MdCheck,
+  MdChevronRight,
+  MdSearch,
+  MdMoreVert,
+  MdEmojiEvents,
+  MdOutlinePublish,
+  MdOutlineUnpublished
+} from "react-icons/md";
 import { getTeacherCourses } from "../../API/course.api";
 import {
   createTest,
@@ -339,7 +341,7 @@ const TeacherTests = () => {
       <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
         <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider block mb-2">Selected Course</label>
         <div className="relative">
-          <LuBookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <MdBook className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
           <select
             value={selectedCourse || ""}
             onChange={(e) => setSelectedCourse(e.target.value)}
@@ -366,7 +368,7 @@ const TeacherTests = () => {
             </div>
           ) : tests.length === 0 ? (
             <div className="p-8 text-center">
-              <LuFileQuestion className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+              <MdQuiz className="w-8 h-8 text-gray-200 mx-auto mb-2" />
               <p className="text-xs text-gray-400 font-medium">No tests created yet.</p>
             </div>
           ) : (
@@ -386,7 +388,7 @@ const TeacherTests = () => {
                   }}
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${meta.color.split(' ')[0]} ${meta.color.split(' ')[1]}`}>
-                    <LuFileQuestion className="w-5 h-5" />
+                    <MdQuiz className="w-5 h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-gray-900 truncate">{test.title}</p>
@@ -405,7 +407,7 @@ const TeacherTests = () => {
                     className={`p-2 rounded-lg transition-colors ${viewingSubmissionsFor === test._id ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-400 hover:text-indigo-600'}`}
                     title="View Submissions"
                   >
-                    <LuUsers className="w-4 h-4" />
+                    <MdPeople className="w-4 h-4" />
                   </button>
                 </div>
               );
@@ -418,7 +420,7 @@ const TeacherTests = () => {
             onClick={() => { resetForm(); setShowForm(true); }}
             className="w-full py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition shadow-sm"
           >
-            <LuPlus className="w-4 h-4" /> Create New Test
+            <MdAdd className="w-4 h-4" /> Create New Test
           </button>
         </div>
       </div>
@@ -576,7 +578,7 @@ const TeacherTests = () => {
                             onClick={() => updateOption(qi, oi, "isCorrect", true)}
                             className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${opt.isCorrect ? 'bg-green-500 text-white shadow-lg shadow-green-100' : 'bg-white text-gray-300 border border-gray-100 hover:border-green-500'}`}
                           >
-                            <LuCheck className="w-3.5 h-3.5" />
+                            <MdCheck className="w-3.5 h-3.5" />
                           </button>
                           <input 
                             type="text" value={opt.text}
@@ -585,13 +587,13 @@ const TeacherTests = () => {
                             className={`flex-1 p-2 bg-white border-transparent rounded-lg text-xs font-medium focus:ring-2 transition shadow-sm ${opt.isCorrect ? 'focus:ring-green-500/10 border-green-200' : 'focus:ring-indigo-500/10'}`}
                           />
                           {q.options.length > 2 && (
-                            <button type="button" onClick={() => removeOption(qi, oi)} className="text-gray-300 hover:text-red-500 transition"><LuX className="w-4 h-4" /></button>
+                            <button type="button" onClick={() => removeOption(qi, oi)} className="text-gray-300 hover:text-red-500 transition"><MdClose className="w-4 h-4" /></button>
                           )}
                         </div>
                       ))}
                       {q.options.length < 6 && (
                         <button type="button" onClick={() => addOption(qi)} className="flex items-center gap-2 text-[10px] font-black uppercase text-indigo-600 hover:underline tracking-widest p-2">
-                          <LuPlus className="w-3 h-3" /> Add Choice
+                          <MdAdd className="w-3 h-3" /> Add Choice
                         </button>
                       )}
                     </div>
@@ -612,7 +614,7 @@ const TeacherTests = () => {
 
                   {q.type === "essay" && (
                     <div className="pl-2 flex items-center gap-2 text-orange-500">
-                      <LuCircleAlert className="w-4 h-4" />
+                      <MdErrorOutline className="w-4 h-4" />
                       <span className="text-[10px] font-bold uppercase tracking-wider">Requires Manual Grading</span>
                     </div>
                   )}
@@ -623,7 +625,7 @@ const TeacherTests = () => {
             <div className="flex justify-between pt-4 border-t border-gray-100">
               <button type="button" onClick={() => setStep(1)} className="px-6 py-2.5 text-xs font-bold text-gray-500 hover:text-gray-700 transition">← Back to Configuration</button>
               <div className="flex gap-3">
-                <button type="button" onClick={() => handleDelete(editingTestId)} className="p-2.5 text-red-400 hover:bg-red-50 rounded-xl transition"><LuTrash2 className="w-5 h-5" /></button>
+                <button type="button" onClick={() => handleDelete(editingTestId)} className="p-2.5 text-red-400 hover:bg-red-50 rounded-xl transition"><MdDelete className="w-5 h-5" /></button>
                 <button 
                   type="submit" disabled={saving}
                   className="px-8 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-100 disabled:opacity-50"
@@ -651,7 +653,7 @@ const TeacherTests = () => {
           onClick={() => setViewingSubmissionsFor(null)}
           className="p-2 text-gray-400 hover:text-gray-900 transition"
         >
-          <LuX className="w-5 h-5" />
+          <MdClose className="w-5 h-5" />
         </button>
       </div>
 
@@ -663,7 +665,7 @@ const TeacherTests = () => {
           </div>
         ) : submissions.length === 0 ? (
           <div className="p-20 text-center">
-            <LuUsers className="w-12 h-12 text-gray-100 mx-auto mb-4" />
+            <MdPeople className="w-12 h-12 text-gray-100 mx-auto mb-4" />
             <p className="text-sm font-bold text-gray-900">No submissions yet</p>
             <p className="text-xs text-gray-400 mt-1">Once students take the test, they will appear here.</p>
           </div>
@@ -715,10 +717,10 @@ const TeacherTests = () => {
               onClick={() => navigate("/teacher")}
               className="p-2.5 bg-white border border-gray-100 rounded-xl text-gray-400 hover:text-gray-900 transition shadow-sm"
             >
-              <LuChevronLeft className="w-5 h-5" />
+              <MdArrowBack className="w-5 h-5" />
             </button>
             <div className="relative group hidden sm:block">
-              <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input 
                 type="text" placeholder="Search tests..." 
                 className="pl-9 pr-4 py-2 bg-white border border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500/10 transition shadow-sm w-48"
@@ -729,10 +731,10 @@ const TeacherTests = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={LuBookOpen} label="Assigned Courses" value={courses.length} colorClass="bg-blue-50 text-blue-600" />
-          <StatCard icon={LuFileQuestion} label="Total Tests" value={tests.length} colorClass="bg-indigo-50 text-indigo-600" />
-          <StatCard icon={LuCheckCircle} label="Published" value={tests.filter(t => t.isPublished).length} colorClass="bg-green-50 text-green-600" />
-          <StatCard icon={LuTrophy} label="Avg Score" value={tests.length > 0 ? "72%" : "—"} colorClass="bg-orange-50 text-orange-600" />
+          <StatCard icon={MdBook} label="Assigned Courses" value={courses.length} colorClass="bg-blue-50 text-blue-600" />
+          <StatCard icon={MdQuiz} label="Total Tests" value={tests.length} colorClass="bg-indigo-50 text-indigo-600" />
+          <StatCard icon={MdCheckCircle} label="Published" value={tests.filter(t => t.isPublished).length} colorClass="bg-green-50 text-green-600" />
+          <StatCard icon={MdEmojiEvents} label="Avg Score" value={tests.length > 0 ? "72%" : "—"} colorClass="bg-orange-50 text-orange-600" />
         </div>
 
         {/* Main Layout Grid */}
@@ -743,7 +745,7 @@ const TeacherTests = () => {
             {showForm ? renderForm() : viewingSubmissionsFor ? renderSubmissions() : (
               <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm p-12 text-center flex flex-col items-center justify-center min-h-[500px]">
                 <div className="w-16 h-16 bg-indigo-50 rounded-[20px] flex items-center justify-center text-indigo-600 mb-6">
-                  <LuLayoutGrid className="w-8 h-8" />
+                  <MdGridView className="w-8 h-8" />
                 </div>
                 <h2 className="text-xl font-black text-gray-900 mb-2">Select an Assessment</h2>
                 <p className="text-xs font-medium text-gray-400 max-w-xs mx-auto">
@@ -751,15 +753,15 @@ const TeacherTests = () => {
                 </p>
                 <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-md">
                    <div className="p-4 bg-gray-50 rounded-2xl text-center">
-                      <LuFileQuestion className="w-5 h-5 text-indigo-400 mx-auto mb-2" />
+                      <MdQuiz className="w-5 h-5 text-indigo-400 mx-auto mb-2" />
                       <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Build Quiz</p>
                    </div>
                    <div className="p-4 bg-gray-50 rounded-2xl text-center">
-                      <LuUsers className="w-5 h-5 text-blue-400 mx-auto mb-2" />
+                      <MdPeople className="w-5 h-5 text-blue-400 mx-auto mb-2" />
                       <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Grade Work</p>
                    </div>
                    <div className="p-4 bg-gray-50 rounded-2xl text-center">
-                      <LuSend className="w-5 h-5 text-green-400 mx-auto mb-2" />
+                      <MdSend className="w-5 h-5 text-green-400 mx-auto mb-2" />
                       <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Publish</p>
                    </div>
                 </div>
@@ -779,7 +781,7 @@ const TeacherTests = () => {
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Student: {gradingSubmission.student?.fullName}</p>
               </div>
               <button onClick={() => setGradingSubmission(null)} className="p-2 hover:bg-white rounded-xl transition text-gray-400 hover:text-gray-900">
-                <LuX className="w-6 h-6" />
+                <MdClose className="w-6 h-6" />
               </button>
             </div>
             
@@ -833,7 +835,7 @@ const TeacherTests = () => {
                             setGradingData(newData);
                           }}
                         >
-                          {gradingData[idx]?.isCorrect && <LuCheck className="w-3 h-3 text-white" />}
+                          {gradingData[idx]?.isCorrect && <MdCheck className="w-3 h-3 text-white" />}
                         </div>
                         <span className="text-[10px] font-black text-gray-400 uppercase group-hover:text-gray-900">Mark Correct</span>
                       </label>
