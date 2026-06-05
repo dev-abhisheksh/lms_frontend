@@ -68,7 +68,7 @@ const TeacherBottombar = () => {
   return (
     <div className="flex md:hidden w-full h-16 bg-white/95 backdrop-blur-md border border-gray-200/50 shadow-[0_8px_24px_rgba(112,52,255,0.08)] rounded-2xl transition-all duration-300">
       {/* Scrollable container with hidden scrollbars */}
-      <div className="h-full w-full flex items-center overflow-x-auto whitespace-nowrap px-6 gap-2 scrollbar-none">
+      <div className="h-full w-full flex items-center overflow-x-auto whitespace-nowrap px-6 gap-2 no-scrollbar">
         {menu.map(({ id, label, icon: Icon, path, exact }) => (
           <NavLink
             key={id}
@@ -94,6 +94,10 @@ const TeacherBottombar = () => {
         {/* Spacer at the end to allow clean scrolling space */}
         <div className="w-8 flex-shrink-0" />
       </div>
+      <style dangerouslySetInnerHTML={{ __html: `
+          .no-scrollbar::-webkit-scrollbar { display: none; }
+          .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}} />
     </div>
   );
 };
