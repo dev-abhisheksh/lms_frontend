@@ -1,18 +1,29 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
-  MdAdd,
-  MdEdit,
-  MdDelete,
-  MdArrowBack,
-  MdQuiz,
-  MdCheckCircle,
-  MdHelpOutline,
-  MdClose,
-  MdPublish,
-  MdUnpublished,
-} from "react-icons/md";
+  LuPlus,
+  LuChevronLeft,
+  LuLayoutGrid,
+  LuCheckCircle,
+  LuHelpCircle,
+  LuX,
+  LuSend,
+  LuEye,
+  LuTrash2,
+  LuEdit3,
+  LuClock,
+  LuBookOpen,
+  LuFileQuestion,
+  LuGraduationCap,
+  LuUsers,
+  LuCircleAlert,
+  LuCheck,
+  LuChevronRight,
+  LuSearch,
+  LuMoreVertical,
+  LuTrophy
+} from "react-icons/lu";
 import { getTeacherCourses } from "../../API/course.api";
 import {
   createTest,
@@ -20,9 +31,32 @@ import {
   updateTest,
   deleteTest,
   togglePublishTest,
+  getTestSubmissions,
+  gradeTestSubmission,
 } from "../../API/test.api";
 
-/* ── helpers ─────────────────────────────────────────── */
+/* ── Design System Components ───────────────────────── */
+
+const StatCard = ({ icon: Icon, label, value, colorClass }) => (
+  <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-2">
+    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colorClass}`}>
+      <Icon className="w-4 h-4" />
+    </div>
+    <div>
+      <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider leading-none mb-1">{label}</p>
+      <p className="text-xl font-black text-gray-900 leading-tight">{value ?? "—"}</p>
+    </div>
+  </div>
+);
+
+const Badge = ({ children, colorClass }) => (
+  <span className={`px-2 py-0.5 text-[8px] sm:text-[10px] font-black uppercase tracking-widest rounded-full border ${colorClass}`}>
+    {children}
+  </span>
+);
+
+/* ── Helpers ────────────────────────────────────────── */
+
 const emptyQuestion = (type) => ({
   questionText: "",
   type: type === "mixed" ? "mcq" : type,
@@ -50,14 +84,15 @@ const defaultForm = {
   questions: [],
 };
 
-const testTypesMeta = [
-  { id: "mcq", label: "MCQ", color: "bg-blue-100 text-blue-700" },
-  { id: "obt", label: "Objective", color: "bg-purple-100 text-purple-700" },
-  { id: "essay", label: "Essay", color: "bg-green-100 text-green-700" },
-  { id: "mixed", label: "Mixed", color: "bg-orange-100 text-orange-700" },
-];
+const testTypesMeta = {
+  mcq: { label: "MCQ", color: "bg-blue-50 text-blue-600 border-blue-100" },
+  obt: { label: "Objective", color: "bg-purple-50 text-purple-600 border-purple-100" },
+  essay: { label: "Essay", color: "bg-green-50 text-green-600 border-green-100" },
+  mixed: { label: "Mixed", color: "bg-orange-50 text-orange-600 border-orange-100" },
+};
 
-/* ── component ───────────────────────────────────────── */
+/* ── Component ───────────────────────────────────────── */
+
 const TeacherTests = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
@@ -78,7 +113,9 @@ const TeacherTests = () => {
   const [gradingData, setGradingData] = useState([]); // Array of { questionId, marksObtained, isCorrect }
   const [gradingFeedback, setGradingFeedback] = useState("");
 
-  /* ── auto-calculate total marks ── */
+  /* ── Calculations ── */
+  const currentCourse = useMemo(() => courses.find(c => c._id === selectedCourse), [courses, selectedCourse]);
+  
   useEffect(() => {
     const total = formData.questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
     if (total !== formData.totalMarks) {
@@ -86,7 +123,7 @@ const TeacherTests = () => {
     }
   }, [formData.questions]);
 
-  /* ── load courses ── */
+  /* ── Load Data ── */
   useEffect(() => {
     (async () => {
       try {
@@ -99,7 +136,6 @@ const TeacherTests = () => {
     })();
   }, []);
 
-  /* ── load tests when course changes ── */
   useEffect(() => {
     if (!selectedCourse) return;
     const load = async () => {
@@ -108,6 +144,7 @@ const TeacherTests = () => {
         const res = await getTestsByCourse(selectedCourse);
         setTests(res.data.tests || []);
         setViewingSubmissionsFor(null);
+        setShowForm(false);
       } catch (e) {
         console.error("Error loading tests:", e);
         setTests([]);
@@ -118,14 +155,14 @@ const TeacherTests = () => {
     load();
   }, [selectedCourse]);
 
-  /* ── load submissions ── */
+  /* ── Handlers ── */
   const loadSubmissions = async (testId) => {
     setLoadingSubmissions(true);
     try {
-      const { getTestSubmissions } = await import("../../API/test.api");
       const res = await getTestSubmissions(testId);
       setSubmissions(res.data.submissions || []);
       setViewingSubmissionsFor(testId);
+      setShowForm(false);
     } catch (e) {
       toast.error("Failed to load submissions");
     } finally {
@@ -133,13 +170,11 @@ const TeacherTests = () => {
     }
   };
 
-  /* ── form field handler ── */
   const handleField = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
   };
 
-  /* ── go from step-1 (meta) → step-2 (questions) ── */
   const goToQuestions = () => {
     if (!formData.title.trim()) return toast.error("Please enter a title");
     const count = Number(formData.totalQuestions) || 1;
@@ -147,8 +182,6 @@ const TeacherTests = () => {
     
     setFormData((p) => {
       let qs = [...(p.questions || [])];
-      
-      // Reconcile types if not mixed
       if (testType !== "mixed") {
         qs = qs.map(q => ({
           ...q,
@@ -156,20 +189,13 @@ const TeacherTests = () => {
           options: testType === "essay" ? [] : (testType === "obt" ? [{ text: q.options[0]?.text || "", isCorrect: true }] : q.options)
         }));
       }
-
-      // grow
-      while (qs.length < count) {
-        qs.push(emptyQuestion(testType));
-      }
-      // shrink
+      while (qs.length < count) { qs.push(emptyQuestion(testType)); }
       qs = qs.slice(0, count);
-      
       return { ...p, questions: qs };
     });
     setStep(2);
   };
 
-  /* ── question helpers ── */
   const updateQuestion = (idx, field, value) => {
     setFormData((p) => {
       const qs = [...p.questions];
@@ -183,9 +209,7 @@ const TeacherTests = () => {
       const qs = [...p.questions];
       const opts = [...qs[qIdx].options];
       const qType = qs[qIdx].type;
-
       if (field === "isCorrect" && (qType === "mcq" || qType === "obt")) {
-        // for MCQ/OBT, usually one correct. (Simplified)
         opts.forEach((o, i) => (opts[i] = { ...o, isCorrect: i === oIdx }));
       } else {
         opts[oIdx] = { ...opts[oIdx], [field]: value };
@@ -198,10 +222,7 @@ const TeacherTests = () => {
   const addOption = (qIdx) => {
     setFormData((p) => {
       const qs = [...p.questions];
-      qs[qIdx] = {
-        ...qs[qIdx],
-        options: [...qs[qIdx].options, { text: "", isCorrect: false }],
-      };
+      qs[qIdx] = { ...qs[qIdx], options: [...qs[qIdx].options, { text: "", isCorrect: false }] };
       return { ...p, questions: qs };
     });
   };
@@ -209,20 +230,14 @@ const TeacherTests = () => {
   const removeOption = (qIdx, oIdx) => {
     setFormData((p) => {
       const qs = [...p.questions];
-      qs[qIdx] = {
-        ...qs[qIdx],
-        options: qs[qIdx].options.filter((_, i) => i !== oIdx),
-      };
+      qs[qIdx] = { ...qs[qIdx], options: qs[qIdx].options.filter((_, i) => i !== oIdx) };
       return { ...p, questions: qs };
     });
   };
 
-  /* ── submit ── */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedCourse) return toast.error("Select a course first");
-
-    // Validation
     const invalid = formData.questions.some(q => !q.questionText.trim());
     if (invalid) return toast.error("All questions must have text");
 
@@ -239,8 +254,7 @@ const TeacherTests = () => {
       const res = await getTestsByCourse(selectedCourse);
       setTests(res.data.tests || []);
     } catch (err) {
-      console.error("Save error:", err);
-      toast.error("Failed to save test: " + (err.response?.data?.message || err.message));
+      toast.error("Failed to save: " + (err.response?.data?.message || err.message));
     } finally {
       setSaving(false);
     }
@@ -253,33 +267,6 @@ const TeacherTests = () => {
     setStep(1);
   };
 
-  /* ── grading ── */
-  const startGrading = (sub) => {
-    setGradingSubmission(sub);
-    setGradingData(sub.answers.map(a => ({
-      questionId: a.questionId,
-      marksObtained: a.marksObtained || 0,
-      isCorrect: a.isCorrect || false
-    })));
-    setGradingFeedback(sub.feedback || "");
-  };
-
-  const submitGrade = async () => {
-    try {
-      const { gradeTestSubmission } = await import("../../API/test.api");
-      await gradeTestSubmission(gradingSubmission._id, {
-        gradedAnswers: gradingData,
-        feedback: gradingFeedback
-      });
-      toast.success("Graded successfully");
-      setGradingSubmission(null);
-      loadSubmissions(viewingSubmissionsFor);
-    } catch (e) {
-      toast.error("Grading failed");
-    }
-  };
-
-  /* ── edit ── */
   const handleEdit = (test) => {
     setEditingTestId(test._id);
     setFormData({
@@ -295,427 +282,534 @@ const TeacherTests = () => {
     });
     setStep(1);
     setShowForm(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setViewingSubmissionsFor(null);
   };
 
-  /* ── delete ── */
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this test?")) return;
     try {
       await deleteTest(id);
       setTests((p) => p.filter((t) => t._id !== id));
+      toast.success("Test deleted");
     } catch (e) {
       toast.error("Delete failed");
     }
   };
 
-  /* ── toggle publish ── */
   const handleToggle = async (id) => {
     try {
       await togglePublishTest(id);
       const res = await getTestsByCourse(selectedCourse);
       setTests(res.data.tests || []);
+      toast.success("Status updated");
     } catch (e) {
-      console.error(e);
+      toast.error("Toggle failed");
     }
   };
 
-  const typeMeta = (t) => testTypesMeta.find((m) => m.id === t) || testTypesMeta[0];
+  const startGrading = (sub) => {
+    setGradingSubmission(sub);
+    setGradingData(sub.answers.map(a => ({
+      questionId: a.questionId,
+      marksObtained: a.marksObtained || 0,
+      isCorrect: a.isCorrect || false
+    })));
+    setGradingFeedback(sub.feedback || "");
+  };
 
-  /* ════════════════════ RENDER ════════════════════ */
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* ── Header ── */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/teacher")} className="p-2 hover:bg-gray-200 rounded-lg transition">
-              <MdArrowBack className="w-5 h-5 text-gray-600" />
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Tests & Quizzes</h1>
-              <p className="text-sm text-gray-500">Create and manage assessments</p>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              if (showForm) resetForm();
-              else { setShowForm(true); setStep(1); }
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
-          >
-            {showForm ? <MdClose className="w-5 h-5" /> : <MdAdd className="w-5 h-5" />}
-            {showForm ? "Cancel" : "New Test"}
-          </button>
-        </div>
+  const submitGrade = async () => {
+    try {
+      await gradeTestSubmission(gradingSubmission._id, {
+        gradedAnswers: gradingData,
+        feedback: gradingFeedback
+      });
+      toast.success("Graded successfully");
+      setGradingSubmission(null);
+      loadSubmissions(viewingSubmissionsFor);
+    } catch (e) {
+      toast.error("Grading failed");
+    }
+  };
 
-        {/* ── Course Selector ── */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Select Course</label>
+  /* ── Render Parts ── */
+
+  const renderMaster = () => (
+    <div className="lg:col-span-4 space-y-4">
+      {/* Course Selection */}
+      <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+        <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider block mb-2">Selected Course</label>
+        <div className="relative">
+          <LuBookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
           <select
             value={selectedCourse || ""}
             onChange={(e) => setSelectedCourse(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 border-transparent rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500/10 transition"
           >
-            <option value="">-- Select a course --</option>
             {courses.map((c) => (
-              <option key={c._id} value={c._id}>
-                {c.title} ({c.courseCode})
-              </option>
+              <option key={c._id} value={c._id}>{c.title}</option>
             ))}
           </select>
         </div>
+      </div>
 
-        {/* ═══════════ FORM ═══════════ */}
-        {showForm && selectedCourse && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            {/* stepper */}
-            <div className="flex border-b border-gray-200">
-              <button
-                onClick={() => setStep(1)}
-                className={`flex-1 py-3 text-sm font-semibold transition ${
-                  step === 1 ? "bg-orange-50 text-orange-700 border-b-2 border-orange-600" : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                1. Test Details
-              </button>
-              <button
-                onClick={() => formData.title && goToQuestions()}
-                className={`flex-1 py-3 text-sm font-semibold transition ${
-                  step === 2 ? "bg-orange-50 text-orange-700 border-b-2 border-orange-600" : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                2. Questions ({formData.questions.length}/{formData.totalQuestions || 0})
-              </button>
+      {/* Tests List */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
+        <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="text-base sm:text-lg font-black tracking-tight text-gray-900">Assessments</h3>
+          <span className="text-[10px] font-bold text-gray-400">{tests.length} Total</span>
+        </div>
+
+        <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+          {loading ? (
+            <div className="p-4 space-y-3">
+              {[1, 2, 3].map(i => <div key={i} className="h-12 bg-gray-50 rounded-xl animate-pulse" />)}
+            </div>
+          ) : tests.length === 0 ? (
+            <div className="p-8 text-center">
+              <LuFileQuestion className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+              <p className="text-xs text-gray-400 font-medium">No tests created yet.</p>
+            </div>
+          ) : (
+            tests.map((test) => {
+              const meta = testTypesMeta[test.type] || testTypesMeta.mcq;
+              const isActive = editingTestId === test._id || viewingSubmissionsFor === test._id;
+              return (
+                <div 
+                  key={test._id} 
+                  className={`p-3 cursor-pointer transition-colors hover:bg-gray-50 flex items-center gap-3 ${isActive ? 'bg-indigo-50/50' : ''}`}
+                  onClick={() => {
+                    if (viewingSubmissionsFor === test._id) return;
+                    setViewingSubmissionsFor(null);
+                    setShowForm(false);
+                    setEditingTestId(test._id);
+                    handleEdit(test);
+                  }}
+                >
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${meta.color.split(' ')[0]} ${meta.color.split(' ')[1]}`}>
+                    <LuFileQuestion className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-gray-900 truncate">{test.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Badge colorClass={meta.color}>{meta.label}</Badge>
+                      <Badge colorClass={test.isPublished ? "bg-green-50 text-green-600 border-green-100" : "bg-gray-50 text-gray-400 border-gray-100"}>
+                        {test.isPublished ? "Published" : "Draft"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      loadSubmissions(test._id);
+                    }}
+                    className={`p-2 rounded-lg transition-colors ${viewingSubmissionsFor === test._id ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-400 hover:text-indigo-600'}`}
+                    title="View Submissions"
+                  >
+                    <LuUsers className="w-4 h-4" />
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <div className="p-3 bg-gray-50/30 border-t border-gray-100">
+          <button
+            onClick={() => { resetForm(); setShowForm(true); }}
+            className="w-full py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition shadow-sm"
+          >
+            <LuPlus className="w-4 h-4" /> Create New Test
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderForm = () => (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+      {/* Stepper */}
+      <div className="flex bg-gray-50/50 border-b border-gray-100">
+        <button
+          onClick={() => setStep(1)}
+          className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-all ${
+            step === 1 ? "text-indigo-600 bg-white" : "text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          1. Test Configuration
+        </button>
+        <button
+          onClick={() => formData.title && goToQuestions()}
+          disabled={!formData.title}
+          className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-all ${
+            step === 2 ? "text-indigo-600 bg-white" : "text-gray-400 hover:text-gray-600"
+          } disabled:opacity-50`}
+        >
+          2. Question Bank ({formData.questions.length})
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="p-6">
+        {step === 1 ? (
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Test Title</label>
+                <input 
+                  type="text" name="title" value={formData.title} onChange={handleField} required
+                  placeholder="e.g. Mid-term Physics Quiz"
+                  className="w-full p-3 bg-gray-50 border-transparent rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500/10 transition"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Assessment Type</label>
+                <select 
+                  name="type" value={formData.type} onChange={handleField}
+                  className="w-full p-3 bg-gray-50 border-transparent rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500/10 transition"
+                >
+                  <option value="mcq">MCQ (Multiple Choice)</option>
+                  <option value="obt">Objective (Exact Match)</option>
+                  <option value="essay">Essay (Subjective)</option>
+                  <option value="mixed">Mixed Types</option>
+                </select>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              {/* ── STEP 1: Meta ── */}
-              {step === 1 && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Test Title *</label>
-                    <input type="text" name="title" value={formData.title} onChange={handleField} required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                      placeholder="e.g. Python Basics Quiz" />
-                  </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Description</label>
+              <textarea 
+                name="description" value={formData.description} onChange={handleField} rows="2"
+                placeholder="Brief instructions for students..."
+                className="w-full p-3 bg-gray-50 border-transparent rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500/10 transition"
+              />
+            </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea name="description" value={formData.description} onChange={handleField} rows="2"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                      placeholder="Describe the test objectives" />
-                  </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Time Limit (Min)</label>
+                <input type="number" name="duration" value={formData.duration} onChange={handleField}
+                  className="w-full p-3 bg-gray-50 border-transparent rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500/10 transition" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Questions</label>
+                <input type="number" name="totalQuestions" value={formData.totalQuestions} onChange={handleField}
+                  className="w-full p-3 bg-gray-50 border-transparent rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500/10 transition" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Total Marks</label>
+                <input type="number" name="totalMarks" value={formData.totalMarks} onChange={handleField} disabled
+                  className="w-full p-3 bg-gray-200 border-transparent rounded-xl text-xs font-bold opacity-50 cursor-not-allowed" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Pass Mark</label>
+                <input type="number" name="passingMarks" value={formData.passingMarks} onChange={handleField}
+                  className="w-full p-3 bg-gray-50 border-transparent rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500/10 transition" />
+              </div>
+            </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Type *</label>
-                      <select name="type" value={formData.type} onChange={handleField}
-                        className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
-                        <option value="mcq">MCQ</option>
-                        <option value="obt">Objective</option>
-                        <option value="essay">Essay</option>
-                        <option value="mixed">Mixed</option>
-                      </select>
+            <div className="flex justify-end gap-3 pt-4">
+              <button type="button" onClick={resetForm} className="px-6 py-2.5 text-xs font-bold text-gray-500 hover:text-gray-700 transition">Cancel</button>
+              <button 
+                type="button" 
+                onClick={goToQuestions}
+                className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition shadow-sm"
+              >
+                Proceed to Questions
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="max-h-[500px] overflow-y-auto pr-2 space-y-6 custom-scrollbar">
+              {formData.questions.map((q, qi) => (
+                <div key={qi} className="p-5 rounded-2xl bg-gray-50/50 border border-gray-100 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-black shadow-lg shadow-indigo-100">
+                        {qi + 1}
+                      </span>
+                      {formData.type === "mixed" && (
+                        <select 
+                          value={q.type}
+                          onChange={(e) => {
+                            const newType = e.target.value;
+                            updateQuestion(qi, "type", newType);
+                            if (newType === "essay") updateQuestion(qi, "options", []);
+                            else if (newType === "obt") updateQuestion(qi, "options", [{ text: "", isCorrect: true }]);
+                            else if (newType === "mcq") updateQuestion(qi, "options", [
+                              { text: "", isCorrect: true }, { text: "", isCorrect: false },
+                              { text: "", isCorrect: false }, { text: "", isCorrect: false },
+                            ]);
+                          }}
+                          className="bg-white border-transparent rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wider focus:ring-2 focus:ring-indigo-500/10 shadow-sm"
+                        >
+                          <option value="mcq">MCQ</option>
+                          <option value="obt">Objective</option>
+                          <option value="essay">Essay</option>
+                        </select>
+                      )}
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Duration (min)</label>
-                      <input type="number" name="duration" value={formData.duration} onChange={handleField} min="1"
-                        className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Total Marks</label>
-                      <input type="number" name="totalMarks" value={formData.totalMarks} onChange={handleField} min="1"
-                        className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Pass Marks</label>
-                      <input type="number" name="passingMarks" value={formData.passingMarks} onChange={handleField} min="0"
-                        className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase text-gray-400">Weightage</span>
+                      <input 
+                        type="number" value={q.marks} min="1"
+                        onChange={(e) => updateQuestion(qi, "marks", Number(e.target.value))}
+                        className="w-16 p-1.5 bg-white border-transparent rounded-lg text-xs font-bold text-center focus:ring-2 focus:ring-indigo-500/10 shadow-sm" 
+                      />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Number of Questions *</label>
-                    <input type="number" name="totalQuestions" value={formData.totalQuestions} onChange={handleField} min="1" max="100"
-                      className="w-full sm:w-40 px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
-                  </div>
+                  <textarea 
+                    value={q.questionText}
+                    onChange={(e) => updateQuestion(qi, "questionText", e.target.value)}
+                    placeholder="Type your question here..."
+                    className="w-full p-4 bg-white border-transparent rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500/10 shadow-sm"
+                    rows="2"
+                  />
 
-                  <div className="flex justify-end gap-3">
-                    <button type="button" onClick={resetForm}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Cancel</button>
-                    <button type="button" onClick={goToQuestions}
-                      className="px-5 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium">
-                      Next → Add Questions
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {/* ── STEP 2: Questions ── */}
-              {step === 2 && (
-                <>
-                  <p className="text-sm text-gray-500">
-                    Fill in <span className="font-semibold text-gray-800">{formData.questions.length}</span> question(s)
-                    for this <span className="font-semibold">{formData.type.toUpperCase()}</span> test.
-                  </p>
-
-                  <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-1">
-                    {formData.questions.map((q, qi) => (
-                      <div key={qi} className="border border-gray-200 rounded-xl p-4 bg-gray-50/50 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
-                            Q{qi + 1}
-                          </span>
-                          {formData.type === "mixed" && (
-                            <select value={q.type}
-                              onChange={(e) => {
-                                const newType = e.target.value;
-                                updateQuestion(qi, "type", newType);
-                                if (newType === "essay") {
-                                  updateQuestion(qi, "options", []);
-                                } else if (newType === "obt") {
-                                  updateQuestion(qi, "options", [{ text: "", isCorrect: true }]);
-                                } else if (newType === "mcq") {
-                                  updateQuestion(qi, "options", [
-                                    { text: "", isCorrect: true },
-                                    { text: "", isCorrect: false },
-                                    { text: "", isCorrect: false },
-                                    { text: "", isCorrect: false },
-                                  ]);
-                                }
-                              }}
-                              className="text-xs border border-gray-300 rounded-lg px-2 py-1 focus:ring-1 focus:ring-orange-500 focus:outline-none">
-                              <option value="mcq">MCQ</option>
-                              <option value="obt">Objective</option>
-                              <option value="essay">Essay</option>
-                            </select>
+                  {/* MCQ Options */}
+                  {q.type === "mcq" && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-2">
+                      {q.options.map((opt, oi) => (
+                        <div key={oi} className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => updateOption(qi, oi, "isCorrect", true)}
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${opt.isCorrect ? 'bg-green-500 text-white shadow-lg shadow-green-100' : 'bg-white text-gray-300 border border-gray-100 hover:border-green-500'}`}
+                          >
+                            <LuCheck className="w-3.5 h-3.5" />
+                          </button>
+                          <input 
+                            type="text" value={opt.text}
+                            onChange={(e) => updateOption(qi, oi, "text", e.target.value)}
+                            placeholder={`Option ${oi + 1}`}
+                            className={`flex-1 p-2 bg-white border-transparent rounded-lg text-xs font-medium focus:ring-2 transition shadow-sm ${opt.isCorrect ? 'focus:ring-green-500/10 border-green-200' : 'focus:ring-indigo-500/10'}`}
+                          />
+                          {q.options.length > 2 && (
+                            <button type="button" onClick={() => removeOption(qi, oi)} className="text-gray-300 hover:text-red-500 transition"><LuX className="w-4 h-4" /></button>
                           )}
-                          <input type="number" value={q.marks} min="1"
-                            onChange={(e) => updateQuestion(qi, "marks", Number(e.target.value))}
-                            className="w-20 text-xs border border-gray-300 rounded-lg px-2 py-1 text-right focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                            title="Marks" />
                         </div>
+                      ))}
+                      {q.options.length < 6 && (
+                        <button type="button" onClick={() => addOption(qi)} className="flex items-center gap-2 text-[10px] font-black uppercase text-indigo-600 hover:underline tracking-widest p-2">
+                          <LuPlus className="w-3 h-3" /> Add Choice
+                        </button>
+                      )}
+                    </div>
+                  )}
 
-                        {/* question text */}
-                        <textarea value={q.questionText}
-                          onChange={(e) => updateQuestion(qi, "questionText", e.target.value)}
-                          rows="2" placeholder={`Enter question ${qi + 1}...`}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+                  {/* Objective (OBT) */}
+                  {q.type === "obt" && (
+                    <div className="pl-2 space-y-2">
+                      <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Correct Answer Key</label>
+                      <input 
+                        type="text" value={q.options[0]?.text || ""}
+                        onChange={(e) => updateOption(qi, 0, "text", e.target.value)}
+                        placeholder="Type exact answer for auto-matching..."
+                        className="w-full p-3 bg-green-50/30 border border-green-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-green-500/10 transition"
+                      />
+                    </div>
+                  )}
 
-                        {/* options (MCQ) */}
-                        {q.type === "mcq" && (
-                          <div className="space-y-2 pl-2">
-                            {q.options.map((opt, oi) => (
-                              <div key={oi} className="flex items-center gap-2">
-                                <input type="radio" name={`correct-${qi}`}
-                                  checked={opt.isCorrect}
-                                  onChange={() => updateOption(qi, oi, "isCorrect", true)}
-                                  className="w-4 h-4 text-green-600 accent-green-600" title="Mark as correct" />
-                                <input type="text" value={opt.text}
-                                  onChange={(e) => updateOption(qi, oi, "text", e.target.value)}
-                                  placeholder={`Option ${String.fromCharCode(65 + oi)}`}
-                                  className={`flex-1 px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:outline-none ${
-                                    opt.isCorrect
-                                      ? "border-green-400 bg-green-50/50 focus:ring-green-400"
-                                      : "border-gray-300 focus:ring-orange-500"
-                                  }`} />
-                                {q.options.length > 2 && (
-                                  <button type="button" onClick={() => removeOption(qi, oi)}
-                                    className="p-1 text-red-400 hover:text-red-600 transition"><MdClose className="w-4 h-4" /></button>
-                                )}
-                              </div>
-                            ))}
-                            {q.options.length < 6 && (
-                              <button type="button" onClick={() => addOption(qi)}
-                                className="text-xs text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1 mt-1">
-                                <MdAdd className="w-3.5 h-3.5" /> Add Option
-                              </button>
-                            )}
-                          </div>
-                        )}
+                  {q.type === "essay" && (
+                    <div className="pl-2 flex items-center gap-2 text-orange-500">
+                      <LuCircleAlert className="w-4 h-4" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Requires Manual Grading</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
 
-                        {/* Objective (OBT) - Single correct answer input */}
-                        {q.type === "obt" && (
-                          <div className="pl-2">
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Expected Correct Answer</label>
-                            <input 
-                              type="text" 
-                              value={q.options[0]?.text || ""}
-                              onChange={(e) => updateOption(qi, 0, "text", e.target.value)}
-                              placeholder="Type the exact expected answer..."
-                              className="w-full px-3 py-2 border border-green-300 bg-green-50/30 rounded-lg text-sm focus:ring-2 focus:ring-green-400 focus:outline-none"
-                            />
-                            <p className="text-[10px] text-gray-400 mt-1 italic">Student's answer must match this exactly (case-insensitive).</p>
-                          </div>
-                        )}
-
-                        {q.type === "essay" && (
-                          <p className="text-xs text-gray-400 italic pl-2">Students will type their answer freely. Manual grading required.</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex justify-between pt-4 border-t border-gray-200">
-                    <button type="button" onClick={() => setStep(1)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">
-                      ← Back to Details
-                    </button>
-                    <button type="submit" disabled={saving}
-                      className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium disabled:opacity-50">
-                      {saving ? "Saving..." : editingTestId ? "Update Test" : "Create Test"}
-                    </button>
-                  </div>
-                </>
-              )}
-            </form>
+            <div className="flex justify-between pt-4 border-t border-gray-100">
+              <button type="button" onClick={() => setStep(1)} className="px-6 py-2.5 text-xs font-bold text-gray-500 hover:text-gray-700 transition">← Back to Configuration</button>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => handleDelete(editingTestId)} className="p-2.5 text-red-400 hover:bg-red-50 rounded-xl transition"><LuTrash2 className="w-5 h-5" /></button>
+                <button 
+                  type="submit" disabled={saving}
+                  className="px-8 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-100 disabled:opacity-50"
+                >
+                  {saving ? "Processing..." : editingTestId ? "Save Changes" : "Deploy Assessment"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
+      </form>
+    </div>
+  );
 
-        {/* ═══════════ TESTS LIST or SUBMISSIONS ═══════════ */}
-        {!showForm && (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-              {viewingSubmissionsFor ? (
-                <button onClick={() => setViewingSubmissionsFor(null)} className="flex items-center gap-1 text-sm text-orange-600 font-semibold hover:underline">
-                  <MdArrowBack /> Back to Tests
+  const renderSubmissions = () => (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
+      <div className="px-6 py-4 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <h3 className="text-base sm:text-lg font-black tracking-tight text-gray-900">Student Submissions</h3>
+          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+            Test: {tests.find(t => t._id === viewingSubmissionsFor)?.title}
+          </p>
+        </div>
+        <button 
+          onClick={() => setViewingSubmissionsFor(null)}
+          className="p-2 text-gray-400 hover:text-gray-900 transition"
+        >
+          <LuX className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="divide-y divide-gray-50 min-h-[400px]">
+        {loadingSubmissions ? (
+          <div className="p-10 text-center space-y-4">
+            <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Retrieving entries...</p>
+          </div>
+        ) : submissions.length === 0 ? (
+          <div className="p-20 text-center">
+            <LuUsers className="w-12 h-12 text-gray-100 mx-auto mb-4" />
+            <p className="text-sm font-bold text-gray-900">No submissions yet</p>
+            <p className="text-xs text-gray-400 mt-1">Once students take the test, they will appear here.</p>
+          </div>
+        ) : (
+          submissions.map((sub) => (
+            <div key={sub._id} className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-xs">
+                  {sub.student?.fullName?.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">{sub.student?.fullName}</p>
+                  <p className="text-[10px] text-gray-400 font-medium">Submitted {new Date(sub.submittedAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="text-right">
+                  <p className="text-base font-black text-indigo-600 leading-none">{sub.score} <span className="text-[10px] text-gray-400">/ {sub.totalMarks}</span></p>
+                  <Badge colorClass={sub.status === "graded" ? "bg-green-50 text-green-600 border-green-100" : "bg-yellow-50 text-yellow-600 border-yellow-100"}>
+                    {sub.status}
+                  </Badge>
+                </div>
+                <button 
+                  onClick={() => startGrading(sub)}
+                  className="px-4 py-2 bg-white border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                >
+                  Grade
                 </button>
-              ) : (
-                <>
-                  <MdQuiz className="w-5 h-5 text-gray-600" />
-                  <h2 className="text-base font-semibold text-gray-900">
-                    {courses.find((c) => c._id === selectedCourse)?.title || "Tests"}
-                  </h2>
-                  <span className="ml-auto text-xs text-gray-500">{tests.length} test(s)</span>
-                </>
-              )}
+              </div>
             </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
 
-            {loading || loadingSubmissions ? (
-              <div className="p-6 space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />
-                ))}
-              </div>
-            ) : viewingSubmissionsFor ? (
-              /* ── Submissions List ── */
-              <div className="divide-y divide-gray-100 min-h-[200px]">
-                {submissions.length === 0 ? (
-                  <div className="p-10 text-center text-gray-500">No submissions found for this test.</div>
-                ) : (
-                  submissions.map((sub) => (
-                    <div key={sub._id} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                      <div>
-                        <p className="text-sm font-bold text-gray-900">{sub.student?.fullName}</p>
-                        <p className="text-xs text-gray-500">{sub.student?.email}</p>
-                        <p className="text-[10px] text-gray-400 mt-1">Submitted: {new Date(sub.submittedAt).toLocaleString()}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-orange-600">{sub.score} / {sub.totalMarks}</p>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full ${sub.status === "graded" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
-                            {sub.status.toUpperCase()}
-                          </span>
-                        </div>
-                        <button onClick={() => startGrading(sub)} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs font-semibold">
-                          View/Grade
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            ) : (
-              /* ── Tests List ── */
-              tests.length === 0 ? (
-                <div className="p-10 text-center">
-                  <MdQuiz className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm text-gray-500">No tests yet. Click "New Test" to create one!</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {tests.map((test) => {
-                    const meta = typeMeta(test.type);
-                    return (
-                      <div key={test._id} className="p-4 hover:bg-gray-50/80 transition group">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              <h3 className="text-sm font-semibold text-gray-900">{test.title}</h3>
-                              <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${meta.color}`}>
-                                {meta.label}
-                              </span>
-                              <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${
-                                test.isPublished ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-                              }`}>
-                                {test.isPublished ? "Published" : "Draft"}
-                              </span>
-                            </div>
-                            {test.description && (
-                              <p className="text-xs text-gray-500 mb-1.5 line-clamp-1">{test.description}</p>
-                            )}
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                              <span>{test.duration} min</span>
-                              <span>{test.totalQuestions || test.questions?.length || 0} Qs</span>
-                              <span>{test.totalMarks} marks</span>
-                              <span>Pass: {test.passingMarks}</span>
-                            </div>
-                          </div>
+  return (
+    <div className="min-h-screen bg-[#F9FAFB] p-3 sm:p-6 font-sans antialiased text-slate-900">
+      <div className="max-w-7xl mx-auto space-y-6">
+        
+        {/* Header Section */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900">Assessment Portal</h1>
+            <p className="text-xs sm:text-sm font-medium text-gray-500 mt-1">Manage tests, quizzes and student performance.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => navigate("/teacher")}
+              className="p-2.5 bg-white border border-gray-100 rounded-xl text-gray-400 hover:text-gray-900 transition shadow-sm"
+            >
+              <LuChevronLeft className="w-5 h-5" />
+            </button>
+            <div className="relative group hidden sm:block">
+              <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input 
+                type="text" placeholder="Search tests..." 
+                className="pl-9 pr-4 py-2 bg-white border border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500/10 transition shadow-sm w-48"
+              />
+            </div>
+          </div>
+        </header>
 
-                          <div className="flex items-center gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition">
-                            <button onClick={() => loadSubmissions(test._id)}
-                              className="p-2 hover:bg-orange-50 rounded-lg text-orange-600 transition" title="View Submissions">
-                              <MdQuiz className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleToggle(test._id)}
-                              className={`p-2 rounded-lg transition ${test.isPublished ? "hover:bg-yellow-50 text-yellow-600" : "hover:bg-green-50 text-green-600"}`}
-                              title={test.isPublished ? "Unpublish" : "Publish"}>
-                              {test.isPublished ? <MdUnpublished className="w-4 h-4" /> : <MdPublish className="w-4 h-4" />}
-                            </button>
-                            <button onClick={() => handleEdit(test)}
-                              className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition" title="Edit">
-                              <MdEdit className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleDelete(test._id)}
-                              className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition" title="Delete">
-                              <MdDelete className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard icon={LuBookOpen} label="Assigned Courses" value={courses.length} colorClass="bg-blue-50 text-blue-600" />
+          <StatCard icon={LuFileQuestion} label="Total Tests" value={tests.length} colorClass="bg-indigo-50 text-indigo-600" />
+          <StatCard icon={LuCheckCircle} label="Published" value={tests.filter(t => t.isPublished).length} colorClass="bg-green-50 text-green-600" />
+          <StatCard icon={LuTrophy} label="Avg Score" value={tests.length > 0 ? "72%" : "—"} colorClass="bg-orange-50 text-orange-600" />
+        </div>
+
+        {/* Main Layout Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {renderMaster()}
+
+          <div className="lg:col-span-8">
+            {showForm ? renderForm() : viewingSubmissionsFor ? renderSubmissions() : (
+              <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm p-12 text-center flex flex-col items-center justify-center min-h-[500px]">
+                <div className="w-16 h-16 bg-indigo-50 rounded-[20px] flex items-center justify-center text-indigo-600 mb-6">
+                  <LuLayoutGrid className="w-8 h-8" />
                 </div>
-              )
+                <h2 className="text-xl font-black text-gray-900 mb-2">Select an Assessment</h2>
+                <p className="text-xs font-medium text-gray-400 max-w-xs mx-auto">
+                  Choose a test from the sidebar to edit its configuration or view student performance and grading.
+                </p>
+                <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-md">
+                   <div className="p-4 bg-gray-50 rounded-2xl text-center">
+                      <LuFileQuestion className="w-5 h-5 text-indigo-400 mx-auto mb-2" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Build Quiz</p>
+                   </div>
+                   <div className="p-4 bg-gray-50 rounded-2xl text-center">
+                      <LuUsers className="w-5 h-5 text-blue-400 mx-auto mb-2" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Grade Work</p>
+                   </div>
+                   <div className="p-4 bg-gray-50 rounded-2xl text-center">
+                      <LuSend className="w-5 h-5 text-green-400 mx-auto mb-2" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Publish</p>
+                   </div>
+                </div>
+              </div>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* ── Grading Modal ── */}
       {gradingSubmission && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-            <div className="p-4 border-b flex justify-between items-center">
-              <h2 className="text-lg font-bold">Grade Submission: {gradingSubmission.student?.fullName}</h2>
-              <button onClick={() => setGradingSubmission(null)}><MdClose className="w-6 h-6" /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <div>
+                <h2 className="text-base sm:text-lg font-black tracking-tight text-gray-900">Review Submission</h2>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Student: {gradingSubmission.student?.fullName}</p>
+              </div>
+              <button onClick={() => setGradingSubmission(null)} className="p-2 hover:bg-white rounded-xl transition text-gray-400 hover:text-gray-900">
+                <LuX className="w-6 h-6" />
+              </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
               {gradingSubmission.answers.map((ans, idx) => {
                 const question = tests.find(t => t._id === viewingSubmissionsFor)?.questions.find(q => q._id === ans.questionId);
                 return (
-                  <div key={idx} className="border p-3 rounded-lg bg-gray-50 space-y-2">
-                    <p className="text-sm font-semibold">Q{idx + 1}: {question?.questionText || "Question text not available"}</p>
+                  <div key={idx} className="p-5 rounded-2xl border border-gray-100 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Question {idx + 1}</span>
+                      <Badge colorClass="bg-indigo-50 text-indigo-600 border-indigo-100">{question?.marks} Marks</Badge>
+                    </div>
+                    <p className="text-xs font-bold text-gray-900">{question?.questionText || "Question text not available"}</p>
+                    
                     {ans.textAnswer && (
-                      <div className="bg-white p-2 border rounded text-sm italic">Student Ans: {ans.textAnswer}</div>
+                      <div className="bg-gray-50 p-4 rounded-xl border border-dashed border-gray-200 text-xs font-medium text-gray-600 italic">
+                         "{ans.textAnswer}"
+                      </div>
                     )}
+                    
                     {ans.selectedOption !== undefined && (
-                      <p className="text-sm">Selected Option: {String.fromCharCode(65 + ans.selectedOption)}</p>
-                    )}
-                    <div className="flex items-center gap-4 pt-2">
                       <div className="flex items-center gap-2">
-                        <label className="text-xs font-bold text-gray-500">MARKS:</label>
+                         <span className="text-[10px] font-black text-gray-400 uppercase">Selected:</span>
+                         <span className="text-xs font-bold text-indigo-600">Option {String.fromCharCode(65 + ans.selectedOption)}</span>
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-gray-50 mt-4">
+                      <div className="flex items-center gap-3 bg-gray-50 px-3 py-1.5 rounded-xl">
+                        <label className="text-[10px] font-black text-gray-400 uppercase">Awarded</label>
                         <input type="number" 
                           value={gradingData[idx]?.marksObtained || 0} 
                           max={question?.marks || 100}
@@ -725,35 +819,60 @@ const TeacherTests = () => {
                             newData[idx].isCorrect = Number(e.target.value) > 0;
                             setGradingData(newData);
                           }}
-                          className="w-16 border rounded px-2 py-1 text-sm" />
-                        <span className="text-xs text-gray-400">/ {question?.marks || 0}</span>
+                          className="w-12 bg-transparent border-none p-0 text-xs font-black text-indigo-600 focus:ring-0" 
+                        />
+                        <span className="text-[10px] text-gray-300 font-bold">/ {question?.marks}</span>
                       </div>
-                      <label className="flex items-center gap-1 text-xs cursor-pointer">
-                        <input type="checkbox" 
-                          checked={gradingData[idx]?.isCorrect}
-                          onChange={(e) => {
+                      
+                      <label className="flex items-center gap-2 cursor-pointer group">
+                        <div 
+                          className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${gradingData[idx]?.isCorrect ? 'bg-green-500 border-green-500' : 'border-gray-200 group-hover:border-indigo-500'}`}
+                          onClick={() => {
                             const newData = [...gradingData];
-                            newData[idx].isCorrect = e.target.checked;
+                            newData[idx].isCorrect = !newData[idx].isCorrect;
                             setGradingData(newData);
-                          }} /> Correct?
+                          }}
+                        >
+                          {gradingData[idx]?.isCorrect && <LuCheck className="w-3 h-3 text-white" />}
+                        </div>
+                        <span className="text-[10px] font-black text-gray-400 uppercase group-hover:text-gray-900">Mark Correct</span>
                       </label>
                     </div>
                   </div>
                 );
               })}
-              <div>
-                <label className="block text-sm font-bold mb-1">Teacher Feedback</label>
-                <textarea value={gradingFeedback} onChange={(e) => setGradingFeedback(e.target.value)}
-                  className="w-full border rounded p-2 text-sm" rows="3" placeholder="Add feedback..."></textarea>
+              
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Teacher Feedback</label>
+                <textarea 
+                  value={gradingFeedback} onChange={(e) => setGradingFeedback(e.target.value)}
+                  className="w-full p-4 bg-gray-50 border-transparent rounded-2xl text-xs font-bold focus:ring-2 focus:ring-indigo-500/10 transition shadow-inner" 
+                  rows="3" 
+                  placeholder="Provide constructive feedback..."
+                />
               </div>
             </div>
-            <div className="p-4 border-t flex justify-end gap-3">
-              <button onClick={() => setGradingSubmission(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
-              <button onClick={submitGrade} className="px-6 py-2 bg-orange-600 text-white rounded font-bold hover:bg-orange-700">Save Grade</button>
+
+            <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/30">
+              <button onClick={() => setGradingSubmission(null)} className="px-6 py-2.5 text-xs font-bold text-gray-500 hover:text-gray-700 transition">Discard</button>
+              <button 
+                onClick={submitGrade} 
+                className="px-8 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-100"
+              >
+                Submit Grade
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Custom scrollbar style */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
+      `}} />
     </div>
   );
 };
