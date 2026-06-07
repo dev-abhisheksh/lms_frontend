@@ -22,9 +22,7 @@ const Universal = () => {
                     <Outlet/>
                 </main>
 
-                <aside className="w-fit h-full">
-                    <AlertAndNoti />
-                </aside>
+                <AlertAndNoti />
 
 
 

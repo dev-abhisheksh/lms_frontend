@@ -13,6 +13,13 @@ export const NotificationProvider = ({ children }) => {
   });
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationWidth, setNotificationWidth] = useState(() => {
+    return parseInt(localStorage.getItem("notificationWidth")) || 320;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("notificationWidth", notificationWidth);
+  }, [notificationWidth]);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -140,6 +147,8 @@ export const NotificationProvider = ({ children }) => {
       toggleNotifications,
       notifications,
       unreadCount,
+      notificationWidth,
+      setNotificationWidth,
       addNotification,
       removeNotification,
       markNotificationRead,
