@@ -39,14 +39,13 @@ export const NotificationProvider = ({ children }) => {
       
       const initSockets = async () => {
         try {
+          socketManager.connect(token);
+
           if (user?._id) {
-            socketManager.connect(token);
             socketManager.joinPersonal(user._id);
             
             socketManager.on("notification", (data) => {
-              // Real-time notification from backend
               fetchNotifications();
-              
               addNotification({
                 type: data.type || 'alert',
                 title: data.title,
@@ -54,6 +53,16 @@ export const NotificationProvider = ({ children }) => {
                 link: data.link
               });
             });
+          }
+
+          // Fetch enrolled courses to join their specific rooms
+          const res = await myCourses();
+          const courses = res.data.courses || [];
+          if (courses.length > 0) {
+            const courseIds = courses.map(c => c.course._id);
+            
+            // Join all course rooms for announcements and specific updates
+            socketManager.joinCourses(courseIds, user?._id);
 
             socketManager.on("new-announcement", (data) => {
               addNotification({
@@ -63,26 +72,15 @@ export const NotificationProvider = ({ children }) => {
                 link: `/course/${data.courseId}/announcements`
               });
             });
-          }
 
-          if (role === "student") {
-            const res = await myCourses();
-            const courses = res.data.courses || [];
-            if (courses.length > 0) {
-              const courseIds = courses.map(c => c.course._id);
-              
-              connectTestSocket(courseIds, {
-                onPublished: (data) => {
-                  addNotification({
-                    type: 'test',
-                    message: data.message,
-                    data: data.test
-                  });
-                },
-                // ... rest of socket listeners
-              });
-              // ...
-            }
+            // Handle test and assignment updates via the same socket
+            socketManager.on("test:published", (data) => {
+              addNotification({ type: 'test', message: data.message, data: data.test });
+            });
+
+            socketManager.on("assignment:created", (data) => {
+              addNotification({ type: 'assignment', message: `New assignment: ${data.title}`, data });
+            });
           }
         } catch (err) {
           console.error("Socket Init Error:", err);

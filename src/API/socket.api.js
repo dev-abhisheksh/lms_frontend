@@ -59,10 +59,10 @@ class SocketManager {
   }
 
   // ─── Join multiple courses ────────────────────────────────────────
-  joinCourses(courseIds, userId) {
-    if (!this.socket) return;
+  joinCourses(courseIds) {
+    if (!this.socket || !Array.isArray(courseIds)) return;
     
-    this.socket.emit("joinCourses", { courseIds, userId });
+    this.socket.emit("join-courses", courseIds);
     console.log(`📌 Joining ${courseIds.length} courses`);
   }
 

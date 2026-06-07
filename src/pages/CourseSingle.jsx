@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { getCourseById } from '../API/course.api'
-import { Link, useParams, useNavigate } from 'react-router-dom'
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { allModules } from '../API/module.api'
 import { getNotesByCourse } from '../API/note.api'
 import { 
@@ -22,12 +22,22 @@ import Announcements from '../components/Announcements'
 const CourseSingle = () => {
     const { courseID } = useParams()
     const navigate = useNavigate()
+    const location = useLocation()
     const [course, setCourse] = useState("")
     const [modules, setModules] = useState([])
     const [materials, setMaterials] = useState([])
-    const [activeTab, setActiveTab] = useState('description')
+    const [activeTab, setActiveTab] = useState(() => {
+        const params = new URLSearchParams(location.search);
+        return params.get('tab') || 'description';
+    })
     const [loading, setLoading] = useState(true)
     const role = localStorage.getItem("role")
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const tab = params.get('tab');
+        if (tab && tab !== activeTab) setActiveTab(tab);
+    }, [location.search]);
 
     useEffect(() => {
         // ... rest of useEffect
