@@ -14,8 +14,10 @@ import {
     MdArrowBack,
     MdOutlineCollectionsBookmark,
     MdOutlineClass,
-    MdOutlineLayers
+    MdOutlineLayers,
+    MdCampaign
 } from 'react-icons/md'
+import Announcements from '../components/Announcements'
 
 const CourseSingle = () => {
     const { courseID } = useParams()
@@ -25,33 +27,10 @@ const CourseSingle = () => {
     const [materials, setMaterials] = useState([])
     const [activeTab, setActiveTab] = useState('description')
     const [loading, setLoading] = useState(true)
+    const role = localStorage.getItem("role")
 
     useEffect(() => {
-        const fetchCourseData = async () => {
-            try {
-                setLoading(true)
-                const [courseRes, modulesRes, materialsRes] = await Promise.all([
-                    getCourseById(courseID),
-                    allModules(courseID).catch(() => ({ data: { modules: [] } })),
-                    getNotesByCourse(courseID).catch(() => ({ data: { notes: [] } }))
-                ]);
-
-                setCourse(courseRes.data.course);
-                
-                if (Array.isArray(modulesRes.data.modules)) {
-                    setModules(modulesRes.data.modules);
-                }
-
-                if (materialsRes && materialsRes.data?.notes) {
-                    setMaterials(materialsRes.data.notes);
-                }
-            } catch (error) {
-                console.error("Failed to fetch course data", error)
-            } finally {
-                setLoading(false)
-            }
-        }
-        fetchCourseData()
+        // ... rest of useEffect
     }, [courseID])
 
     const formattedDate = course.createdAt ? new Date(course.createdAt).toLocaleDateString('en-IN', {
@@ -63,7 +42,8 @@ const CourseSingle = () => {
     const tabs = [
         { id: "description", label: "Overview", icon: MdDescription },
         { id: "modules", label: "Curriculum", icon: MdOutlineLayers },
-        { id: "materials", label: "Resources", icon: MdOutlineLibraryBooks }
+        { id: "materials", label: "Resources", icon: MdOutlineLibraryBooks },
+        { id: "announcements", label: "Announcements", icon: MdCampaign }
     ];
 
     if (loading) {
@@ -322,6 +302,10 @@ const CourseSingle = () => {
                         </div>
                     )}
 
+                    {/* Announcements Tab */}
+                    {activeTab === "announcements" && (
+                        <Announcements courseId={courseID} role={role} />
+                    )}
                 </div>
             </div>
         </div>

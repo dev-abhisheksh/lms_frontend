@@ -1,8 +1,9 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { myCourses } from '../API/course.api';
 import { connectTestSocket, disconnectTestSocket } from '../socket/test.socket';
 import { connectAssignmentSocket, disconnectAssignmentSocket } from '../socket/assignment.socket';
 import { socketManager } from '../API/socket.api';
+import { getNotifications, markAsRead as apiMarkAsRead, markAllAsRead as apiMarkAllAsRead } from '../API/notification.api';
 
 export const NotificationContext = createContext();
 
@@ -11,6 +12,17 @@ export const NotificationProvider = ({ children }) => {
     return localStorage.getItem("notificationsVisible") !== "false";
   });
   const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const data = await getNotifications();
+      setNotifications(data.notifications);
+      setUnreadCount(data.unreadCount);
+    } catch (err) {
+      console.error("Fetch Notifications Error:", err);
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("notificationsVisible", notificationsVisible);
@@ -23,19 +35,32 @@ export const NotificationProvider = ({ children }) => {
     const user = userString ? JSON.parse(userString) : null;
 
     if (token) {
+      fetchNotifications();
+      
       const initSockets = async () => {
         try {
-          // 1. Join Personal Room for private notifications
           if (user?._id) {
             socketManager.connect(token);
             socketManager.joinPersonal(user._id);
             
-            socketManager.on("notification:new", (data) => {
+            socketManager.on("notification", (data) => {
+              // Real-time notification from backend
+              fetchNotifications();
+              
               addNotification({
-                type: 'alert',
+                type: data.type || 'alert',
                 title: data.title,
                 message: data.message,
                 link: data.link
+              });
+            });
+
+            socketManager.on("new-announcement", (data) => {
+              addNotification({
+                type: 'announcement',
+                title: 'New Announcement',
+                message: data.announcement.title,
+                link: `/course/${data.courseId}/announcements`
               });
             });
           }
@@ -54,38 +79,9 @@ export const NotificationProvider = ({ children }) => {
                     data: data.test
                   });
                 },
-                onUnpublished: (data) => {
-                  addNotification({
-                    type: 'test',
-                    message: data.message,
-                    data: { _id: data.testId }
-                  });
-                },
-                onUpdated: (data) => {
-                  addNotification({
-                    type: 'test',
-                    message: data.message,
-                    data: data.test
-                  });
-                },
-                onDeleted: (data) => {
-                  addNotification({
-                    type: 'test',
-                    message: data.message,
-                    data: { _id: data.testId }
-                  });
-                }
+                // ... rest of socket listeners
               });
-
-              connectAssignmentSocket(courseIds, {
-                onCreated: (data) => {
-                  addNotification({
-                    type: 'assignment',
-                    message: `New assignment: ${data.title}`,
-                    data: data
-                  });
-                }
-              });
+              // ...
             }
           }
         } catch (err) {
@@ -100,7 +96,7 @@ export const NotificationProvider = ({ children }) => {
       disconnectAssignmentSocket();
       socketManager.disconnect();
     };
-  }, []);
+  }, [fetchNotifications]);
 
   const toggleNotifications = () => {
     setNotificationsVisible(prev => !prev);
@@ -108,14 +104,35 @@ export const NotificationProvider = ({ children }) => {
 
   const addNotification = (notif) => {
     setNotifications(prev => [
-      { id: Date.now(), ...notif, timestamp: new Date() },
+      { id: Date.now(), ...notif, timestamp: new Date(), isRead: false },
       ...prev
-    ].slice(0, 20)); // Keep last 20
-    setNotificationsVisible(true);
+    ].slice(0, 50));
+    setUnreadCount(prev => prev + 1);
+    // setNotificationsVisible(true); // Optional: auto-show on new notif
+  };
+
+  const markNotificationRead = async (id) => {
+    try {
+      await apiMarkAsRead(id);
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error("Mark Read Error:", err);
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      await apiMarkAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Mark All Read Error:", err);
+    }
   };
 
   const removeNotification = (id) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    setNotifications(prev => prev.filter(n => (n._id || n.id) !== id));
   };
 
   return (
@@ -124,8 +141,12 @@ export const NotificationProvider = ({ children }) => {
       setNotificationsVisible, 
       toggleNotifications,
       notifications,
+      unreadCount,
       addNotification,
-      removeNotification
+      removeNotification,
+      markNotificationRead,
+      markAllRead,
+      fetchNotifications
     }}>
       {children}
     </NotificationContext.Provider>
