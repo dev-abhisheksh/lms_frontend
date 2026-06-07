@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 const Navbar = () => {
   const [toggleProfileMenu, setToggleProfileMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false)
-  const { notificationsVisible, toggleNotifications } = useNotifications();
+  const { notificationsVisible, toggleNotifications, unreadCount } = useNotifications();
   const [userData, setUserData] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate()
@@ -98,7 +98,7 @@ const Navbar = () => {
           </div>
           <button
             onClick={toggleNotifications}
-            className={`p-2 rounded-md cursor-pointer transition-all duration-200 ${
+            className={`p-2 rounded-md cursor-pointer transition-all duration-200 relative ${
               notificationsVisible 
                 ? "text-gray-600 hover:text-[#7034FF]" 
                 : "text-gray-400 hover:text-gray-600"
@@ -106,6 +106,11 @@ const Navbar = () => {
             title={notificationsVisible ? "Hide notifications" : "Show notifications"}
           >
             <IoMdNotificationsOutline size={22} className="sm:w-[26px] sm:h-[26px]" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white font-bold">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </button>
 
           {/* Avatar + Menu */}
