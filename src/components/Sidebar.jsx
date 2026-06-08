@@ -42,7 +42,7 @@ const Sidebar = () => {
           <NavLink
             key={id}
             to={path}
-            end={path === "/"}
+            end={path === "/teacher" || path === "/"}
             className={({ isActive }) =>
               `
       flex items-center gap-3 px-3 py-2 rounded-lg
@@ -67,7 +67,7 @@ const Sidebar = () => {
           <NavLink
             key={id}
             to={path}
-            end={path === "/"}
+            end={path === "/student" || path === "/"}
             className={({ isActive }) =>
               `
       flex items-center gap-3 px-3 py-2 rounded-lg
