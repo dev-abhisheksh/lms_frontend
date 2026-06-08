@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { myCourses } from "../API/course.api";
+import { 
+    MdOutlineSchool, 
+    MdOutlineCollectionsBookmark, 
+    MdOutlineTrendingUp,
+    MdOutlinePlayCircleOutline,
+    MdChevronRight
+} from "react-icons/md";
 
 const Grids = () => {
     const [myCoursez, setMyCoursez] = useState([])
@@ -24,100 +31,142 @@ const Grids = () => {
         loadCourses();
     }, []);
 
-    return (
-        <div className="w-full h-full p-3 sm:p-4 md:p-6 bg-white rounded-lg overflow-y-scroll scrollbar-hide">
+    const stats = [
+        { label: "Active Courses", value: myCoursez.length, icon: MdOutlineSchool, color: "bg-indigo-50 text-indigo-600" },
+        { label: "Resources", value: "24", icon: MdOutlineCollectionsBookmark, color: "bg-blue-50 text-blue-600" },
+        { label: "Progress", value: "78%", icon: MdOutlineTrendingUp, color: "bg-green-50 text-green-600" },
+    ];
 
-            {/* ── Section header ────────────────────────────────────────── */}
-            <div className="mb-6">
-                <h1 className="text-xl md:text-2xl font-bold text-gray-900">
-                    My Courses
-                </h1>
-                <p className="text-sm text-gray-600 mt-1">
-                    {myCoursez.length} course{myCoursez.length !== 1 ? "s" : ""} enrolled
-                </p>
-            </div>
-
-            {/* ── Loading State ──────────────────────────────────────────── */}
-            {loading && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {[...Array(6)].map((_, i) => (
-                        <div 
-                            key={i} 
-                            className="bg-gray-100 rounded-lg border border-gray-200 p-4 animate-pulse h-56"
-                        />
+    if (loading) {
+        return (
+            <div className="w-full h-full p-3 sm:p-6 bg-[#F9FAFB] overflow-y-auto space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="h-20 bg-white rounded-2xl animate-pulse border border-slate-100" />
                     ))}
                 </div>
-            )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <div key={i} className="h-64 bg-white rounded-2xl animate-pulse border border-slate-100" />
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-full h-full p-3 sm:p-6 bg-[#F9FAFB] overflow-y-auto scrollbar-hide">
+            {/* ── Page Header ────────────────────────────────────────── */}
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+                        My Courses
+                    </h1>
+                    <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">
+                        Welcome back! You have {myCoursez.length} active enrollments.
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg">
+                        Session: Summer 2026
+                    </span>
+                </div>
+            </div>
+
+            {/* ── Stat Cards (Horizontal & Compact) ─────────────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                {stats.map((stat, i) => (
+                    <div key={i} className="bg-white rounded-2xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:shadow-md transition-all">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${stat.color}`}>
+                            <stat.icon size={20} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1">
+                                {stat.label}
+                            </span>
+                            <span className="text-lg font-black text-slate-900 leading-none">
+                                {stat.value}
+                            </span>
+                        </div>
+                    </div>
+                ))}
+            </div>
 
             {/* ── Empty State ────────────────────────────────────────────── */}
-            {myCoursez.length === 0 && !loading && (
-                <div className="bg-gray-50 rounded-lg border border-gray-200 p-12 text-center">
-                    <div className="w-12 h-12 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
-                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
+            {myCoursez.length === 0 && (
+                <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center shadow-sm">
+                    <div className="w-16 h-16 mx-auto mb-6 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300">
+                        <MdOutlineSchool size={32} />
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">No Courses Found</h3>
-                    <p className="text-sm text-gray-600">No enrollments found. Please contact your administrator.</p>
+                    <h3 className="text-lg font-black text-slate-900 mb-2">No Enrolled Courses</h3>
+                    <p className="text-sm font-medium text-slate-500 max-w-sm mx-auto">
+                        You are not currently enrolled in any courses. Please contact the academic office for registration.
+                    </p>
                 </div>
             )}
 
             {/* ── Courses Grid ────────────────────────────────────────────── */}
-            {!loading && myCoursez.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {myCoursez.map((item) => (
-                        <Link
-                            key={item._id}
-                            to={`/course/${item.course._id}`}
-                            className="bg-white border border-gray-200 rounded-lg hover:shadow-md hover:border-blue-300 transition-all group no-underline flex flex-col h-full overflow-hidden"
-                        >
-                            {/* Course Image Header */}
-                            <div className="w-full h-40 overflow-hidden bg-gray-100 border-b border-gray-200 relative">
-                                {item.course.image ? (
-                                    <img 
-                                        src={item.course.image} 
-                                        alt={item.course.title}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                                        <svg className="w-10 h-10 text-white opacity-80" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
-                                        </svg>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {myCoursez.map((item) => (
+                    <Link
+                        key={item._id}
+                        to={`/course/${item.course._id}`}
+                        className="bg-white border border-slate-100 rounded-[24px] overflow-hidden hover:shadow-xl hover:shadow-indigo-500/5 hover:scale-[1.01] transition-all group flex flex-col h-full shadow-sm"
+                    >
+                        {/* Course Image Header */}
+                        <div className="w-full h-44 overflow-hidden bg-slate-100 relative">
+                            {item.course.image ? (
+                                <img 
+                                    src={item.course.image} 
+                                    alt={item.course.title}
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                />
+                            ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center relative overflow-hidden">
+                                    <div className="absolute inset-0 opacity-10">
+                                        <MdOutlineSchool className="w-full h-full scale-150 rotate-12" />
                                     </div>
-                                )}
+                                    <MdOutlinePlayCircleOutline className="w-12 h-12 text-white/80 relative z-10" />
+                                </div>
+                            )}
+                            {/* Metadata Badge */}
+                            <div className="absolute top-4 left-4">
+                                <span className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-lg">
+                                    {item.course.courseCode || "CRS-101"}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Course Info */}
+                        <div className="flex-1 p-6 flex flex-col">
+                            <div className="flex items-start justify-between mb-3">
+                                <h2 className="text-base font-bold text-slate-900 line-clamp-2 leading-tight group-hover:text-indigo-600 transition-colors">
+                                    {item.course.title}
+                                </h2>
                             </div>
 
-                            {/* Course Info */}
-                            <div className="flex-1 p-4 flex flex-col">
-                                {/* Title & Status Badge */}
-                                <div className="mb-3">
-                                    <h2 className="text-base font-bold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                                        {item.course.title}
-                                    </h2>
+                            <p className="text-xs sm:text-sm font-medium text-slate-500 line-clamp-2 mb-6 flex-grow leading-relaxed">
+                                {item.course.description || "No course description available at this moment. Click to explore the curriculum."}
+                            </p>
+
+                            {/* Footer / Action */}
+                            <div className="pt-5 border-t border-slate-50 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                        <MdOutlinePlayCircleOutline size={18} />
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        Continue Learning
+                                    </span>
                                 </div>
-
-                                {/* Description */}
-                                <p className="text-sm text-gray-600 line-clamp-2 mb-4 flex-grow">
-                                    {item.course.description || "No description available"}
-                                </p>
-
-                                {/* Footer */}
-                                <div className="flex items-center justify-between text-xs">
-                                    <span className="text-gray-500">Click to continue</span>
-                                    <svg 
-                                        className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                    >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
+                                <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                    <MdChevronRight size={20} />
                                 </div>
                             </div>
-                        </Link>
-                    ))}
-                </div>
-            )}
-
+                        </div>
+                    </Link>
+                ))}
+            </div>
         </div>
     );
 };
