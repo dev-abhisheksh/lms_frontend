@@ -1,10 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { Departments } from "../API/department.api";
 import { registerUser } from "../API/user.api";
+import { 
+  MdPersonOutline, 
+  MdPhoneIphone, 
+  MdMailOutline, 
+  MdOutlineDomain, 
+  MdLayers, 
+  MdEvent, 
+  MdArrowForward,
+  MdContentCopy,
+  MdVisibility,
+  MdVisibilityOff,
+  MdCheckCircleOutline
+} from "react-icons/md";
+import toast from "react-hot-toast";
 
-// ─── helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Generate password: first 4 chars of name (Title-cased) + first 4 digits of phone */
 const generatePassword = (fullName = "", phone = "") => {
   const namePart = fullName.trim().replace(/\s+/g, "");
   const nameFour =
@@ -18,11 +31,38 @@ const generatePassword = (fullName = "", phone = "") => {
   return nameFour + phoneFour;
 };
 
-/** Generate username from fullName: lowercase, underscores */
 const generateUsername = (fullName = "") =>
   fullName.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
 
-// ─── component ───────────────────────────────────────────────────────────────
+// ─── Components ──────────────────────────────────────────────────────────────
+
+const FormInput = ({ label, icon: Icon, ...props }) => (
+  <div className="space-y-1.5">
+    <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">{label}</label>
+    <div className="relative group">
+      {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />}
+      <input
+        {...props}
+        className={`h-12 w-full bg-slate-50 border-transparent focus:ring-4 focus:ring-indigo-500/5 focus:bg-white focus:border-indigo-100 rounded-xl ${Icon ? 'pl-12' : 'px-4'} pr-4 text-xs font-bold text-slate-900 transition-all placeholder:text-slate-300`}
+      />
+    </div>
+  </div>
+);
+
+const FormSelect = ({ label, icon: Icon, options, ...props }) => (
+  <div className="space-y-1.5">
+    <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">{label}</label>
+    <div className="relative group">
+      {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none" size={20} />}
+      <select
+        {...props}
+        className="h-12 w-full bg-slate-50 border-transparent focus:ring-4 focus:ring-indigo-500/5 focus:bg-white focus:border-indigo-100 rounded-xl pl-12 pr-4 text-xs font-bold text-slate-900 transition-all appearance-none cursor-pointer"
+      >
+        {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+      </select>
+    </div>
+  </div>
+);
 
 const AdminAddUser = () => {
   const [form, setForm] = useState({
@@ -31,23 +71,20 @@ const AdminAddUser = () => {
     email: "",
     role: "student",
     department: "",
-    year: "", // Now generic (e.g., 10 or FY)
-    section: "", // New field for schools (e.g., A, B)
+    year: "",
+    section: "",
     cohortYear: "",
   });
 
   const [departments, setDepartments] = useState([]);
   const [selectedDept, setSelectedDept] = useState("");
   const [deptPage, setDeptPage] = useState(1);
-  const DEPT_PAGE_SIZE = 8;
+  const DEPT_PAGE_SIZE = 6;
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const isStudent = form.role === "student";
-
   const generatedPassword = generatePassword(form.fullName, form.phone);
   const generatedUsername = generateUsername(form.fullName);
 
@@ -75,16 +112,12 @@ const AdminAddUser = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-
-    if (!generatedPassword || generatedPassword.length < 4) {
-      setError("Enter at least 1 character of name and 4 digits of phone to generate a valid password.");
-      setLoading(false);
+    if (!selectedDept) {
+      toast.error("Please select a department");
       return;
     }
 
+    setLoading(true);
     try {
       const payload = {
         fullName: form.fullName.trim(),
@@ -99,11 +132,11 @@ const AdminAddUser = () => {
       };
 
       await registerUser(payload);
-      setSuccess(`✅ User created! Email: ${form.email.trim()} | Password: ${generatedPassword}`);
+      toast.success("User registered successfully!");
       setForm({ fullName: "", phone: "", email: "", role: "student", department: "", year: "", section: "", cohortYear: "" });
       setSelectedDept("");
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to add user");
+      toast.error(err.response?.data?.message || "Failed to add user");
     } finally {
       setLoading(false);
     }
@@ -115,188 +148,231 @@ const AdminAddUser = () => {
     deptPage * DEPT_PAGE_SIZE
   );
 
-  // shared input class
-  const inputCls = "w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300";
-  const labelCls = "block mb-0.5 text-xs font-medium text-gray-700";
-
   return (
-    <div className="h-full bg-gray-50 p-3 sm:p-4 lg:p-5 overflow-hidden">
-      <div className="max-w-7xl mx-auto h-full">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
+    <div className="space-y-6">
+      {/* Page Header */}
+      <header>
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">Add New User</h1>
+        <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">
+          Onboard new students, faculty, or administrative staff to the system.
+        </p>
+      </header>
 
-          {/* ── LEFT FORM ── */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-4 lg:p-5 flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="mb-3 shrink-0">
-              <h1 className="text-lg font-bold text-gray-900">Add User</h1>
-              <p className="text-xs text-gray-500">Create students, teachers, managers and admins.</p>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        
+        {/* ── Left Column: Form (8 cols) ── */}
+        <div className="lg:col-span-8">
+          <div className="bg-white p-6 sm:p-7 rounded-[24px] border border-slate-100 shadow-sm h-full">
+            <div className="mb-6">
+              <h3 className="text-base sm:text-lg font-black tracking-tight text-slate-900">Account Details</h3>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Personal and professional information</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2.5 flex-1">
-
-              {/* FULL NAME */}
-              <div>
-                <label className={labelCls}>Full Name</label>
-                <input type="text" name="fullName" value={form.fullName} onChange={handleChange}
-                  required placeholder="Abhishek Sharma" className={inputCls} />
-                {generatedUsername && (
-                  <p className="mt-0.5 text-xs text-gray-400">
-                    Username: <span className="font-mono text-purple-600">{generatedUsername}</span>
-                  </p>
-                )}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormInput
+                  label="Full Name"
+                  name="fullName"
+                  icon={MdPersonOutline}
+                  required
+                  value={form.fullName}
+                  onChange={handleChange}
+                  placeholder="e.g. Abhishek Sharma"
+                />
+                <FormInput
+                  label="Phone Number"
+                  name="phone"
+                  icon={MdPhoneIphone}
+                  required
+                  value={form.phone}
+                  onChange={handleChange}
+                  placeholder="9175XXXXXX"
+                />
+                <FormInput
+                  label="Email Address"
+                  name="email"
+                  type="email"
+                  icon={MdMailOutline}
+                  required
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="abhishek@university.edu"
+                />
+                <FormSelect
+                  label="System Role"
+                  name="role"
+                  icon={MdOutlineDomain}
+                  value={form.role}
+                  onChange={handleChange}
+                  options={[
+                    { value: 'student', label: 'Student' },
+                    { value: 'teacher', label: 'Teacher' },
+                    { value: 'manager', label: 'Manager' },
+                    { value: 'admin', label: 'Admin' }
+                  ]}
+                />
               </div>
 
-              {/* PHONE */}
-              <div>
-                <label className={labelCls}>Phone Number</label>
-                <input type="tel" name="phone" value={form.phone} onChange={handleChange}
-                  required placeholder="9175XXXXXX" className={inputCls} />
-                <p className="mt-0.5 text-xs text-gray-400">Used to auto-generate the password.</p>
-              </div>
-
-              {/* EMAIL */}
-              <div>
-                <label className={labelCls}>Email Address</label>
-                <input type="email" name="email" value={form.email} onChange={handleChange}
-                  required placeholder="abhishek@example.com" className={inputCls} />
-              </div>
-
-              {/* ROLE */}
-              <div>
-                <label className={labelCls}>Role</label>
-                <select name="role" value={form.role} onChange={handleChange} className={inputCls}>
-                  <option value="student">Student</option>
-                  <option value="teacher">Teacher</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-
-              {/* YEAR — students only */}
               {isStudent && (
-                <div>
-                  <label className={labelCls}>Standard / Year</label>
-                  <input type="text" name="year" value={form.year} onChange={handleChange}
-                    required placeholder="e.g., 10 or FY" className={inputCls} />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-50">
+                  <FormInput
+                    label="Academic Year"
+                    name="year"
+                    icon={MdLayers}
+                    required
+                    value={form.year}
+                    onChange={handleChange}
+                    placeholder="e.g. 10 or FY"
+                  />
+                  <FormInput
+                    label="Section"
+                    name="section"
+                    icon={MdOutlineDomain}
+                    value={form.section}
+                    onChange={handleChange}
+                    placeholder="e.g. A or Div-1"
+                  />
+                  <FormInput
+                    label="Admission Year"
+                    name="cohortYear"
+                    type="number"
+                    icon={MdEvent}
+                    required
+                    value={form.cohortYear}
+                    onChange={handleChange}
+                    placeholder="2026"
+                  />
                 </div>
               )}
 
-              {/* SECTION — students only */}
-              {isStudent && (
-                <div>
-                  <label className={labelCls}>Section / Division</label>
-                  <input type="text" name="section" value={form.section} onChange={handleChange}
-                    placeholder="e.g., A or Div-1" className={inputCls} />
-                </div>
-              )}
-
-              {/* COHORT YEAR — students only */}
-              {isStudent && (
-                <div>
-                  <label className={labelCls}>Cohort / Admission Year</label>
-                  <input type="number" name="cohortYear" value={form.cohortYear} onChange={handleChange}
-                    required placeholder="2026" className={inputCls} />
-                </div>
-              )}
-
-              {/* PASSWORD PREVIEW */}
-              <div className="md:col-span-2">
-                <label className={labelCls}>Auto-Generated Password</label>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-purple-50 border border-purple-200 rounded-lg px-3 py-1.5 font-mono text-purple-800 tracking-widest text-sm min-h-[34px] flex items-center">
-                    {generatedPassword
-                      ? (showPassword ? generatedPassword : "•".repeat(generatedPassword.length))
-                      : <span className="text-gray-400 font-sans tracking-normal text-xs">Enter name &amp; phone to generate…</span>
-                    }
+              {/* Password Generator Preview */}
+              <div className="bg-slate-50 rounded-2xl p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Auto-Generated Access</label>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-1 text-slate-400 hover:text-indigo-600 transition-colors">
+                      {showPassword ? <MdVisibilityOff size={16} /> : <MdVisibility size={16} />}
+                    </button>
+                    <button type="button" onClick={() => { navigator.clipboard.writeText(generatedPassword); toast.success("Password copied!"); }} className="p-1 text-slate-400 hover:text-indigo-600 transition-colors">
+                      <MdContentCopy size={16} />
+                    </button>
                   </div>
-                  {generatedPassword && (
-                    <>
-                      <button type="button" onClick={() => setShowPassword((v) => !v)}
-                        className="text-xs text-purple-600 hover:text-purple-800 underline shrink-0">
-                        {showPassword ? "Hide" : "Show"}
-                      </button>
-                      <button type="button" onClick={() => navigator.clipboard.writeText(generatedPassword)}
-                        className="text-xs text-gray-500 hover:text-gray-800 underline shrink-0">
-                        Copy
-                      </button>
-                    </>
-                  )}
                 </div>
-                <p className="mt-0.5 text-xs text-gray-400">
-                  First 4 chars of name + first 4 digits of phone. Student can change it after first login.
-                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1 opacity-50">Username</p>
+                    <div className="h-10 flex items-center px-4 bg-white border border-slate-100 rounded-xl text-xs font-mono font-bold text-indigo-600">
+                      {generatedUsername || "..."}
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1 opacity-50">Initial Password</p>
+                    <div className="h-10 flex items-center px-4 bg-white border border-slate-100 rounded-xl text-xs font-mono font-bold text-indigo-600 tracking-[0.2em]">
+                      {generatedPassword ? (showPassword ? generatedPassword : "••••••••") : "..."}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* ALERTS */}
-              <div className="md:col-span-2">
-                {error && <div className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-red-800 text-xs font-medium">{error}</div>}
-                {success && <div className="p-2.5 bg-green-50 border border-green-200 rounded-lg text-green-800 text-xs font-medium break-all">{success}</div>}
-              </div>
-
-              {/* SUBMIT */}
-              <div className="md:col-span-2">
-                <button type="submit"
-                  disabled={loading || !selectedDept || !generatedPassword}
-                  className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-all font-semibold text-sm disabled:opacity-50">
-                  {loading ? "Adding…" : "Add User"}
-                </button>
-                {!selectedDept && (
-                  <p className="text-center text-xs text-gray-400 mt-1">← Select a department on the right to enable this button.</p>
+              <button
+                type="submit"
+                disabled={loading || !selectedDept || !generatedPassword}
+                className="h-12 w-full bg-slate-900 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-slate-200 hover:bg-indigo-600 hover:shadow-indigo-100 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 group mt-2"
+              >
+                {loading ? "Registering..." : (
+                  <>
+                    <span>Add User to System</span>
+                    <MdArrowForward size={18} className="group-hover:translate-x-1 transition-transform" />
+                  </>
                 )}
-              </div>
+              </button>
+              
+              {!selectedDept && (
+                <p className="text-center text-[10px] font-black uppercase tracking-widest text-red-400 animate-pulse">
+                  Please select a department from the panel on the right
+                </p>
+              )}
             </form>
           </div>
+        </div>
 
-          {/* ── RIGHT DEPARTMENT PANEL ── */}
-          <div className="bg-gray-900 text-white rounded-xl shadow-sm border border-gray-800 p-4 flex flex-col overflow-hidden">
-            <div className="mb-2 shrink-0">
-              <h2 className="text-sm font-bold">Departments</h2>
-              <p className="text-gray-400 text-xs">Select the department for this user.</p>
+        {/* ── Right Column: Department Selector (4 cols) ── */}
+        <div className="lg:col-span-4 flex flex-col gap-6">
+          <div className="bg-slate-900 rounded-[24px] shadow-xl overflow-hidden flex flex-col flex-1 min-h-[400px]">
+            <div className="p-6 border-b border-white/5">
+              <h3 className="text-base font-black tracking-tight text-white">Department</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Assign organizational unit</p>
             </div>
 
-            <div className="flex-1 space-y-1.5 overflow-hidden">
-              {pagedDepartments.length === 0 && (
-                <p className="text-gray-500 text-xs">No departments found.</p>
-              )}
-              {pagedDepartments.map((dept) => (
+            <div className="flex-1 p-3 space-y-2">
+              {pagedDepartments.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center p-8 text-center opacity-30">
+                  <MdOutlineDomain size={48} className="text-white mb-4" />
+                  <p className="text-xs font-bold text-white uppercase tracking-widest">No Units Found</p>
+                </div>
+              ) : pagedDepartments.map((dept) => (
                 <button
                   key={dept._id}
                   type="button"
                   onClick={() => handleDeptSelect(dept._id)}
-                  className={`w-full rounded-lg px-3 py-2 text-left transition-all border text-sm
+                  className={`w-full group rounded-xl px-4 py-3 text-left transition-all border
                     ${selectedDept === dept._id
-                      ? "bg-purple-600 border-purple-400 shadow-lg shadow-purple-500/30"
-                      : "bg-white/5 border-white/10 hover:bg-white/10"}`}
+                      ? "bg-indigo-600 border-indigo-500 shadow-lg shadow-indigo-600/20"
+                      : "bg-white/5 border-white/5 hover:bg-white/10"}`}
                 >
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-sm leading-tight">{dept.name}</h3>
-                      {dept.code && <p className="text-xs text-gray-300">{dept.code}</p>}
+                    <div className="min-w-0">
+                      <h3 className={`font-bold text-sm truncate ${selectedDept === dept._id ? "text-white" : "text-slate-200"}`}>
+                        {dept.name}
+                      </h3>
+                      <p className={`text-[10px] font-black uppercase tracking-widest mt-0.5 ${selectedDept === dept._id ? "text-indigo-200" : "text-slate-500"}`}>
+                        {dept.code || "No Code"}
+                      </p>
                     </div>
-                    <div className={`h-3 w-3 rounded-full border-2 shrink-0 ${
-                      selectedDept === dept._id ? "bg-white border-white" : "border-gray-400"}`} />
+                    {selectedDept === dept._id && <MdCheckCircleOutline className="text-white shrink-0 ml-4" size={20} />}
                   </div>
                 </button>
               ))}
             </div>
 
-            {/* PAGINATION */}
-            <div className="flex items-center justify-between mt-3 shrink-0">
-              <button type="button" onClick={() => setDeptPage((p) => Math.max(1, p - 1))}
+            {/* Pagination Controls */}
+            <div className="p-4 bg-black/20 border-t border-white/5 flex items-center justify-between">
+              <button 
+                type="button" 
+                onClick={() => setDeptPage((p) => Math.max(1, p - 1))}
                 disabled={deptPage === 1}
-                className="px-3 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20 transition disabled:opacity-40">
+                className="h-9 px-4 rounded-lg bg-white/5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-white/10 hover:text-white transition-all disabled:opacity-20"
+              >
                 Prev
               </button>
-              <span className="text-xs text-gray-300">{deptPage} / {totalPages || 1}</span>
-              <button type="button" onClick={() => setDeptPage((p) => Math.min(totalPages, p + 1))}
+              <div className="flex items-center gap-1.5">
+                {[...Array(totalPages)].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className={`h-1.5 rounded-full transition-all ${deptPage === i + 1 ? 'w-4 bg-indigo-500' : 'w-1.5 bg-slate-700'}`} 
+                  />
+                ))}
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setDeptPage((p) => Math.min(totalPages, p + 1))}
                 disabled={deptPage === totalPages || totalPages === 0}
-                className="px-3 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20 transition disabled:opacity-40">
+                className="h-9 px-4 rounded-lg bg-white/5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-white/10 hover:text-white transition-all disabled:opacity-20"
+              >
                 Next
               </button>
             </div>
           </div>
 
+          <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm">
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Quick Note</h4>
+            <p className="text-xs font-medium text-slate-500 leading-relaxed">
+              New users will be prompted to complete their profile and update their password upon first login. Ensure the email provided is valid for notification delivery.
+            </p>
+          </div>
         </div>
+
       </div>
     </div>
   );

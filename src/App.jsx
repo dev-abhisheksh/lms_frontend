@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Courses from "./pages/Courses";
 import Universal from "./components/Universal";
 import CourseSingle from "./pages/CourseSingle";
@@ -108,6 +109,7 @@ const App = () => {
           </Route>
 
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
         </Routes>
         </div>
       </NotificationProvider>

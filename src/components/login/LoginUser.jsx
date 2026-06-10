@@ -13,9 +13,9 @@ import {
 } from "react-icons/md";
 import { loginUser, registerUser } from "../../API/auth.api";
 
-const LoginUser = () => {
+const LoginUser = ({ mode = "login" }) => {
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(mode === "login");
   const [loading, setLoading] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -193,7 +193,7 @@ const LoginUser = () => {
           {/* Footer Action */}
           <div className="px-8 py-6 bg-slate-50/50 border-t border-slate-100 text-center">
             <button 
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => navigate(isLogin ? "/register" : "/login")}
               className="text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors flex items-center justify-center gap-2 mx-auto"
             >
               {isLogin ? "New here? Create an account" : "Already have an account? Sign in"}
