@@ -112,6 +112,17 @@ const AdminDepartments = () => {
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
+  const openEdit = (dept) => {
+    setEditTarget(dept);
+    setFormData({ name: dept.name, description: dept.description || "" });
+    setShowForm(true);
+  };
+
+  const openManagerModal = (dept) => {
+    setSelectedManagerId(dept.manager?._id || "");
+    setShowManagerModal(true);
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
